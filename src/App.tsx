@@ -4,10 +4,12 @@ import About from './components/sections/About';
 import Projects from './components/sections/Projects';
 import Contact from './components/sections/Contact';
 import { ThemeProvider } from './components/providers/ThemeProvider';
+import SEO from './components/SEO';
 
 function App() {
   return (
     <ThemeProvider>
+      <SEO />
       <Layout>
         <Hero />
         <About />
