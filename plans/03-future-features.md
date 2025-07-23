@@ -1,11 +1,30 @@
 # Future Features Plan - Portfolio Enhancement Ideas
 
 ## Overview
-This document contains exciting feature ideas to continuously enhance the portfolio and demonstrate advanced technical skills. Each feature is designed to impress potential employers and showcase different aspects of software engineering expertise.
+This document contains feature ideas to continuously enhance the portfolio after the priority features are complete. The top two features (Performance Dashboard and GitHub Integration Suite) are now being implemented as priority features - see `05-priority-features-spec.md` for detailed specifications.
+
+## 🎯 PRIORITY FEATURES (Currently Being Implemented)
+
+### ✅ Performance Dashboard (Days 7-10)
+**Status**: Priority implementation - see detailed specs in `05-priority-features-spec.md`
+- Real-time Web Vitals tracking and visualization
+- Interactive performance metrics dashboard
+- Historical data analysis and export functionality
+
+### ✅ GitHub Integration Suite (Days 11-14)  
+**Status**: Priority implementation - see detailed specs in `05-priority-features-spec.md`
+- Live GitHub activity and contribution visualization
+- Repository statistics and language analysis
+- Developer insights and project showcase enhancement
+
+---
+
+## 🔮 Future Feature Considerations
+*To be considered after priority features are complete and polished*
 
 ## Interactive Showcases
 
-### 1. Live Code Playground (Priority: High)
+### 1. Live Code Playground (Future Priority: High)
 **Technical Showcase**: Compiler/Interpreter knowledge, React performance
 - **Monaco Editor** integration (VS Code's editor)
 - Multiple language support (JS/TS, Python, Go)
@@ -182,27 +201,26 @@ This document contains exciting feature ideas to continuously enhance the portfo
 - On-chain resume
 - **Tech**: Ethers.js, Smart contracts, IPFS
 
-## Implementation Priority Matrix
+## Updated Implementation Priority Matrix
+*Note: Performance Dashboard and GitHub Integration Suite are now priority features being implemented first*
 
-### Phase 1 (Months 1-2)
+### Next Phase 1 (After Priority Features Complete)
 1. Live Code Playground
 2. Algorithm Visualizer
 3. Terminal Portfolio Interface
-4. GitHub Integration Suite
 
-### Phase 2 (Months 3-4)
-5. Technical Blog with MDX
-6. 3D Project Gallery
-7. Performance Metrics Dashboard
-8. Dynamic Theme Engine
+### Next Phase 2 (Months 2-3 after priority features)
+4. Technical Blog with MDX
+5. 3D Project Gallery
+6. Dynamic Theme Engine
 
-### Phase 3 (Months 5-6)
-9. AI-Powered Features
-10. Real-Time Collaboration Demo
-11. Game-ified Experience
-12. Smart Content Recommendations
+### Next Phase 3 (Months 4-5 after priority features)
+7. AI-Powered Features
+8. Real-Time Collaboration Demo
+9. Game-ified Experience
 
-### Experimental (As Time Allows)
+### Future Considerations (As Time Allows)
+- Smart Content Recommendations
 - WebAssembly Demos
 - AR Business Card
 - Voice Navigation

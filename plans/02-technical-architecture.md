@@ -16,8 +16,14 @@
 
 **State Management**
 - **Zustand**: Lightweight, TypeScript-friendly for global state (theme, user preferences)
-- **React Query (TanStack Query)**: For server state and API calls
+- **React Query (TanStack Query)**: For server state and API calls (GitHub API, analytics)
 - **Local State**: useState/useReducer for component state
+
+**Priority Features Libraries**
+- **Chart.js + react-chartjs-2**: Performance dashboard visualization
+- **D3.js**: Custom GitHub contribution graphs and advanced charts  
+- **web-vitals**: Core Web Vitals monitoring for performance dashboard
+- **date-fns**: Date manipulation for analytics and GitHub data
 
 **Animation & Interaction**
 - **Framer Motion**: Smooth, performant animations
@@ -36,9 +42,25 @@
 - **tRPC**: End-to-end typesafe APIs
 - **Prisma + PlanetScale**: If database needed later
 
-### Development Tools
+### Dependencies for Priority Features
 ```json
 {
+  "dependencies": {
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "framer-motion": "^10.16.0",
+    "zustand": "^4.4.0",
+    "@tanstack/react-query": "^5.0.0",
+    "clsx": "^2.0.0",
+    
+    // Priority Features
+    "chart.js": "^4.4.0",
+    "react-chartjs-2": "^5.2.0",
+    "d3": "^7.8.5",
+    "@types/d3": "^7.4.3",
+    "web-vitals": "^3.5.0",
+    "date-fns": "^2.30.0"
+  },
   "devDependencies": {
     "@types/react": "^18.2.0",
     "@types/react-dom": "^18.2.0",
@@ -74,6 +96,7 @@ components/
 ├── ui/               # Reusable UI components
 │   ├── Button/
 │   ├── Card/
+│   ├── Chart/        # Chart wrapper components
 │   └── Modal/
 ├── layout/           # Layout components
 │   ├── Header/
@@ -83,7 +106,18 @@ components/
 │   ├── Hero/
 │   ├── About/
 │   └── Projects/
-└── interactive/      # Interactive showcases
+├── dashboard/        # 🎯 Priority: Performance Dashboard
+│   ├── MetricsChart/
+│   ├── PerformanceCard/
+│   ├── DashboardLayout/
+│   └── WebVitalsTracker/
+├── github/           # 🎯 Priority: GitHub Integration
+│   ├── ActivityFeed/
+│   ├── ContributionGraph/
+│   ├── RepoStats/
+│   ├── LanguageChart/
+│   └── DeveloperInsights/
+└── interactive/      # Future: Interactive showcases
     ├── CodePlayground/
     ├── AlgoVisualizer/
     └── AnimationDemo/
@@ -102,6 +136,54 @@ TanStack Query (Server State)
 Vercel Edge Functions
        ↓
 External APIs (GitHub, Analytics)
+```
+
+### 🎯 Priority Features Architecture
+
+#### Performance Dashboard Data Flow
+```
+Web Vitals API → useWebVitals Hook → Dashboard Components
+       ↓                ↓                    ↓
+Performance Observer → Chart.js → Real-time Visualization
+       ↓                ↓                    ↓
+localStorage Cache → Analytics Service → Export Functionality
+```
+
+#### GitHub Integration Data Flow
+```
+GitHub API → TanStack Query → useGitHubData Hook
+     ↓              ↓                ↓
+Data Processing → Cache Strategy → Component State
+     ↓              ↓                ↓
+D3.js Rendering → Chart Updates → UI Components
+```
+
+#### Priority Features Data Models
+```typescript
+// Performance Dashboard
+interface WebVitalsMetric {
+  name: 'CLS' | 'FID' | 'FCP' | 'LCP' | 'TTFB';
+  value: number;
+  rating: 'good' | 'needs-improvement' | 'poor';
+  timestamp: Date;
+}
+
+// GitHub Integration
+interface GitHubRepository {
+  id: number;
+  name: string;
+  description: string;
+  language: string;
+  stars: number;
+  forks: number;
+  updated_at: string;
+}
+
+interface ContributionDay {
+  date: string;
+  count: number;
+  level: 0 | 1 | 2 | 3 | 4;
+}
 ```
 
 ### Performance Optimizations
