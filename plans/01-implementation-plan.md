@@ -20,6 +20,8 @@ Build a professional software engineer portfolio website showcasing coding skill
    - Configure Tailwind CSS with custom design system
    - Set up ESLint, Prettier, and TypeScript configs
    - Create folder structure and routing
+   - Set up environment variables (.env.local, .env.example)
+   - Initialize git repository and connect to GitHub
 
 2. **Core Components**
    - Layout components (Header, Footer, Navigation)
@@ -71,6 +73,11 @@ Build a professional software engineer portfolio website showcasing coding skill
    - Performance benchmarks
    - SEO validation
 
+3. **Documentation**
+   - Create CLAUDE.md file with project overview
+   - Document build and deployment commands
+   - Add development guidelines
+
 ### Phase 4: Priority Features (Days 7-14)
 **Goal**: Implement performance dashboard and GitHub integration to showcase technical expertise
 
@@ -79,46 +86,46 @@ Build a professional software engineer portfolio website showcasing coding skill
 **Showcase Skills**: Data visualization, performance monitoring, real-time metrics
 
 ### Implementation Details:
-1. **Real-Time Metrics Collection**
-   - Web Vitals integration (LCP, FID, CLS, TTFB)
-   - Custom performance marks and measures
-   - User behavior tracking (scroll depth, time on page)
-   - Error tracking and reporting
+1. **Real-Time Metrics Collection** (Day 7)
+   - Create `useWebVitals.ts` hook
+   - Set up performance observer in `services/analytics.ts`
+   - Implement localStorage caching for metrics
+   - Create `types/performance.ts` for TypeScript interfaces
 
-2. **Data Visualization Components**
-   - Interactive charts using Chart.js or D3.js
-   - Real-time metric updates
-   - Historical trend analysis
-   - Performance score breakdown
+2. **Data Visualization Components** (Day 8-9)
+   - Build `MetricsChart.tsx` with Chart.js
+   - Create `PerformanceCard.tsx` for individual metrics
+   - Implement `DashboardLayout.tsx` grid system
+   - Add `PerformanceTimeline.tsx` for historical data
 
-3. **Analytics Dashboard Interface**
-   - Clean, professional dashboard design
-   - Responsive charts and graphs
-   - Filters for date ranges and metrics
-   - Export functionality for reports
+3. **Analytics Dashboard Interface** (Day 10)
+   - Create `/dashboard` route and page
+   - Implement filter controls (date range, metric type)
+   - Add export functionality (JSON/CSV download)
+   - Polish animations and loading states
 
 ## 🎯 PRIORITY FEATURE 2: GitHub Integration Suite  
 **Timeline**: Days 11-14
 **Showcase Skills**: API integration, data processing, developer tools
 
 ### Implementation Details:
-1. **Live Activity Visualization**
-   - Real-time commit activity feed
-   - Contribution calendar with interactive tooltips
-   - Repository statistics and insights
-   - Language usage breakdown with charts
+1. **GitHub API Setup & Data Fetching** (Day 11)
+   - Create `services/github-api.ts` with caching
+   - Build `useGitHubData.ts` hook with React Query
+   - Set up `types/github.ts` for TypeScript interfaces
+   - Implement rate limiting and error handling
 
-2. **Project Showcase Enhancement**
-   - Automatic project data fetching from GitHub API
-   - Live stats (stars, forks, recent commits)
-   - Technology stack detection from repo analysis
-   - README preview integration
+2. **Core Visualization Components** (Days 12-13)
+   - Build `ContributionGraph.tsx` with D3.js
+   - Create `ActivityFeed.tsx` for recent commits
+   - Implement `RepoStats.tsx` cards
+   - Add `LanguageChart.tsx` donut chart
 
-3. **Developer Metrics**
-   - Coding frequency analysis
-   - Most active repositories
-   - Programming language trends over time
-   - Pull request and issue statistics
+3. **Integration & Polish** (Day 14)
+   - Create `/github` showcase page
+   - Integrate components into Projects section
+   - Add loading skeletons and error states
+   - Optimize performance and caching
 
 ## File Structure
 ```

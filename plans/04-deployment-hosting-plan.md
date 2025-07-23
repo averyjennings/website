@@ -73,43 +73,77 @@ This plan outlines the most cost-effective approach to deploy and host the portf
 
 ### Environment Variables
 ```bash
-# Production
-VITE_API_URL=https://api.yourdomain.com
+# Production (Set in Vercel Dashboard)
+VITE_GITHUB_USERNAME=yourgithubusername
 VITE_GA_ID=G-XXXXXXXXXX
 VITE_PUBLIC_URL=https://yourdomain.com
+VITE_SENTRY_DSN=your-sentry-dsn # Optional
 
-# Development
-VITE_API_URL=http://localhost:3000
+# Development (.env.local)
+VITE_GITHUB_USERNAME=yourgithubusername
 VITE_GA_ID=test
 VITE_PUBLIC_URL=http://localhost:5173
+VITE_GITHUB_TOKEN=ghp_xxxx # Optional for higher rate limits
 ```
+
+**Setting Environment Variables in Vercel:**
+1. Go to Project Settings → Environment Variables
+2. Add each variable for Production environment
+3. Optional: Add different values for Preview/Development
 
 ### GitHub Actions CI/CD
 ```yaml
-name: Deploy to Production
+name: CI/CD Pipeline
 
 on:
   push:
-    branches: [main]
+    branches: [main, master]
+  pull_request:
+    branches: [main, master]
 
 jobs:
-  deploy:
+  test:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
-      - uses: actions/setup-node@v3
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
         with:
           node-version: 20
           cache: 'npm'
       
-      - run: npm ci
-      - run: npm run lint
-      - run: npm run type-check
-      - run: npm run test
-      - run: npm run build
+      - name: Install dependencies
+        run: npm ci
       
-      # Vercel automatically deploys
+      - name: Run linting
+        run: npm run lint
+      
+      - name: Type checking
+        run: npm run type-check
+      
+      - name: Run tests
+        run: npm run test --if-present
+      
+      - name: Build project
+        run: npm run build
+      
+      - name: Check bundle size
+        run: npx vite-bundle-visualizer --open false
+      
+      # Vercel automatically deploys on push to main
 ```
+
+### Priority Features Deployment Considerations
+
+**Performance Dashboard:**
+- Web Vitals data stored in localStorage (no backend needed)
+- Charts render client-side (no server processing)
+- Export functionality uses browser APIs
+
+**GitHub Integration:**
+- API calls made directly from browser (CORS enabled)
+- Consider caching responses to avoid rate limits
+- No API keys needed for public data
+- Optional: Use Vercel Edge Functions for proxy if rate limits hit
 
 ## Cost Optimization Strategies
 

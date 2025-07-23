@@ -15,8 +15,12 @@ npm install -D tailwindcss postcss autoprefixer
 npx tailwindcss init -p
 
 # Install essential packages
-npm install framer-motion clsx zustand
+npm install framer-motion clsx zustand @tanstack/react-query
 npm install -D @types/node
+
+# Install priority features dependencies
+npm install chart.js react-chartjs-2 d3 web-vitals date-fns
+npm install -D @types/d3
 ```
 
 ### 2. Configure Tailwind
@@ -45,16 +49,55 @@ export default {
 ```
 src/
 ├── components/
-│   ├── Layout.tsx
-│   ├── Hero.tsx
-│   ├── About.tsx
-│   ├── Projects.tsx
-│   └── Contact.tsx
+│   ├── layout/
+│   │   ├── Header.tsx
+│   │   └── Footer.tsx
+│   ├── sections/
+│   │   ├── Hero.tsx
+│   │   ├── About.tsx
+│   │   ├── Projects.tsx
+│   │   └── Contact.tsx
+│   ├── dashboard/      # Priority Feature 1
+│   │   └── (components will be added Days 7-10)
+│   └── github/         # Priority Feature 2
+│       └── (components will be added Days 11-14)
+├── hooks/
+│   ├── useWebVitals.ts
+│   └── useGitHubData.ts
+├── services/
+│   ├── analytics.ts
+│   └── github-api.ts
+├── types/
+│   └── index.ts
 ├── App.tsx
 └── main.tsx
 ```
 
-### 4. Deploy to Vercel (Get it live immediately!)
+### 4. Setup Code Quality Tools
+```bash
+# Install ESLint and Prettier
+npm install -D eslint @typescript-eslint/parser @typescript-eslint/eslint-plugin
+npm install -D prettier eslint-config-prettier eslint-plugin-react-hooks
+
+# Create .eslintrc.json
+echo '{"extends": ["react-app", "prettier"], "rules": {}}' > .eslintrc.json
+
+# Create .prettierrc
+echo '{"semi": true, "singleQuote": true, "tabWidth": 2}' > .prettierrc
+```
+
+### 5. Environment Variables Setup
+```bash
+# Create .env.local for development
+echo "VITE_GITHUB_USERNAME=yourusername" > .env.local
+echo "VITE_GA_ID=your-ga-id" >> .env.local
+
+# Create .env.example for version control
+echo "VITE_GITHUB_USERNAME=" > .env.example
+echo "VITE_GA_ID=" >> .env.example
+```
+
+### 6. Deploy to Vercel (Get it live immediately!)
 ```bash
 # Push to GitHub first
 git add .
@@ -71,7 +114,7 @@ git push origin master
 
 ### Hero Section Template
 ```typescript
-// src/components/Hero.tsx
+// src/components/sections/Hero.tsx
 import { motion } from 'framer-motion';
 
 export function Hero() {
@@ -122,7 +165,7 @@ npx tsc --noEmit
 npm run lint
 ```
 
-## MVP Feature Checklist (Week 1)
+## MVP Feature Checklist (Days 1-6)
 
 - [ ] Hero section with animation
 - [ ] About section with skills
@@ -133,25 +176,33 @@ npm run lint
 - [ ] Dark mode toggle
 - [ ] Basic SEO meta tags
 - [ ] Deploy to Vercel
+- [ ] Create CLAUDE.md file
 
-## Next Steps After MVP
+## Priority Features (Days 7-14)
 
-1. **Add Interactive Demo** (Week 2)
-   - Start with a simple code syntax highlighter
-   - Or a CSS animation playground
+### Performance Dashboard (Days 7-10)
+- [ ] Web Vitals integration
+- [ ] Real-time metrics collection
+- [ ] Interactive charts with Chart.js
+- [ ] Performance analytics export
 
-2. **Optimize Performance** (Week 2)
-   - Add lazy loading for images
-   - Implement code splitting
-   - Optimize bundle size
+### GitHub Integration Suite (Days 11-14)
+- [ ] GitHub API integration
+- [ ] Contribution graph with D3.js
+- [ ] Repository statistics
+- [ ] Developer insights dashboard
 
-3. **Add Analytics** (Week 2)
-   - Google Analytics 4
-   - Or Vercel Analytics
+## Next Steps After Priority Features
 
-4. **Enhance with Features** (Week 3+)
-   - See `03-future-features.md` for ideas
-   - Start with the highest impact features
+1. **Polish & Optimize** (Days 15-16)
+   - Performance testing
+   - Mobile optimization
+   - User feedback integration
+
+2. **Future Features** (After Day 16)
+   - Live Code Playground
+   - Algorithm Visualizer
+   - See `03-future-features.md` for full list
 
 ## Resources
 

@@ -48,6 +48,7 @@
   "dependencies": {
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
+    "react-router-dom": "^6.21.0",
     "framer-motion": "^10.16.0",
     "zustand": "^4.4.0",
     "@tanstack/react-query": "^5.0.0",
@@ -254,13 +255,60 @@ interface SEOConfig {
 - Deploy Production (main)
 ```
 
+### Routing Configuration
+```typescript
+// Using React Router v6
+const routes = [
+  { path: '/', element: <HomePage /> },
+  { path: '/dashboard', element: <DashboardPage /> },
+  { path: '/github', element: <GitHubShowcasePage /> },
+  { path: '/projects', element: <ProjectsPage /> },
+  { path: '/about', element: <AboutPage /> },
+  { path: '/contact', element: <ContactPage /> },
+];
+```
+
+### TypeScript Configuration
+```json
+// tsconfig.json
+{
+  "compilerOptions": {
+    "target": "ES2020",
+    "useDefineForClassFields": true,
+    "lib": ["ES2020", "DOM", "DOM.Iterable"],
+    "module": "ESNext",
+    "skipLibCheck": true,
+    "moduleResolution": "bundler",
+    "allowImportingTsExtensions": true,
+    "resolveJsonModule": true,
+    "isolatedModules": true,
+    "noEmit": true,
+    "jsx": "react-jsx",
+    "strict": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "noFallthroughCasesInSwitch": true,
+    "paths": {
+      "@/*": ["./src/*"],
+      "@components/*": ["./src/components/*"],
+      "@hooks/*": ["./src/hooks/*"],
+      "@services/*": ["./src/services/*"],
+      "@types/*": ["./src/types/*"]
+    }
+  },
+  "include": ["src"],
+  "references": [{ "path": "./tsconfig.node.json" }]
+}
+```
+
 ### Environment Variables
 ```env
 # .env.local
+VITE_GITHUB_USERNAME=your-github-username
 VITE_GA_ID=your-ga-id
 VITE_SENTRY_DSN=your-sentry-dsn
 VITE_API_URL=your-api-url
-VITE_GITHUB_TOKEN=your-github-token
+VITE_GITHUB_TOKEN=your-github-token # Optional for higher rate limits
 ```
 
 ## Technology Decisions Rationale
