@@ -61,17 +61,17 @@ const About = () => {
             className="space-y-6"
           >
             {skills.map((skillGroup, index) => (
-              <div key={skillGroup.category}>
-                <h4 className="text-lg font-semibold text-gray-900 mb-3">{skillGroup.category}</h4>
+              <div key={skillGroup.category} className="bg-gray-50 rounded-xl p-6">
+                <h4 className="text-lg font-semibold text-gray-900 mb-4">{skillGroup.category}</h4>
                 <div className="flex flex-wrap gap-2">
-                  {skillGroup.items.map((skill) => (
+                  {skillGroup.items.map((skill, skillIndex) => (
                     <motion.span
                       key={skill}
                       initial={{ opacity: 0, scale: 0.8 }}
                       whileInView={{ opacity: 1, scale: 1 }}
-                      transition={{ duration: 0.3, delay: index * 0.1 }}
+                      transition={{ duration: 0.3, delay: index * 0.1 + skillIndex * 0.05 }}
                       viewport={{ once: true }}
-                      className="px-4 py-2 bg-gray-100 text-gray-700 rounded-full text-sm font-medium hover:bg-gray-200 transition-colors"
+                      className="px-4 py-2 bg-white text-gray-700 rounded-full text-sm font-medium hover:bg-blue-50 hover:text-blue-600 transition-all duration-200 shadow-sm"
                     >
                       {skill}
                     </motion.span>

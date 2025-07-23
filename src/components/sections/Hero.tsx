@@ -1,9 +1,14 @@
 import { motion } from 'framer-motion';
+import Button from '../ui/Button';
 
 const Hero = () => {
   return (
-    <section id="home" className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100">
-      <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-20">
+    <section id="home" className="relative min-h-screen flex items-center justify-center overflow-hidden">
+      {/* Gradient Background */}
+      <div className="absolute inset-0 bg-gradient-to-br from-blue-50 via-white to-indigo-100" />
+      
+      {/* Content */}
+      <div className="relative z-10 container mx-auto px-4 sm:px-6 lg:px-8 py-20">
         <div className="text-center">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
@@ -12,7 +17,7 @@ const Hero = () => {
           >
             <h1 className="text-5xl md:text-6xl lg:text-7xl font-bold text-gray-900 mb-6">
               Hi, I'm{' '}
-              <span className="inline-block bg-gradient-to-r from-blue-600 to-indigo-600 text-transparent bg-clip-text">
+              <span className="gradient-text inline-block font-extrabold">
                 Your Name
               </span>
             </h1>
@@ -33,18 +38,12 @@ const Hero = () => {
             transition={{ duration: 0.5, delay: 0.4 }}
             className="flex flex-col sm:flex-row gap-4 justify-center items-center"
           >
-            <a
-              href="#projects"
-              className="inline-block px-8 py-3 text-base font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors"
-            >
+            <Button href="#projects" as="a" size="lg">
               View Projects
-            </a>
-            <a
-              href="#contact"
-              className="inline-block px-8 py-3 text-base font-medium text-gray-700 bg-white hover:bg-gray-50 border border-gray-300 rounded-lg transition-colors"
-            >
+            </Button>
+            <Button href="#contact" as="a" variant="secondary" size="lg">
               Get In Touch
-            </a>
+            </Button>
           </motion.div>
         </div>
 
@@ -61,6 +60,7 @@ const Hero = () => {
               fill="none"
               stroke="currentColor"
               viewBox="0 0 24 24"
+              xmlns="http://www.w3.org/2000/svg"
             >
               <path
                 strokeLinecap="round"
