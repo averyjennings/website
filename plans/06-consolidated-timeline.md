@@ -18,13 +18,13 @@ This document consolidates all timelines from the various planning documents int
 - [x] Install all dependencies including priority features libraries
 - [x] Create CLAUDE.md documentation file
 
-#### Day 2: Core Components
-- [ ] Build layout components (Header, Footer, Navigation)
-- [ ] Create Hero section with Framer Motion animations
-- [ ] Implement About section with skills showcase
-- [ ] Build Projects section with basic GitHub links
-- [ ] Add Contact section with social links
-- [ ] Set up React Router for navigation
+#### Day 2: Core Components ✅ COMPLETED
+- [x] Build layout components (Header, Footer, Navigation)
+- [x] Create Hero section with Framer Motion animations
+- [x] Implement About section with skills showcase
+- [x] Build Projects section with basic GitHub links
+- [x] Add Contact section with social links
+- [x] Set up smooth scrolling navigation (React Router not needed for single-page)
 
 #### Day 3: Design System & Polish
 - [ ] Implement color palette and dark/light theme toggle
