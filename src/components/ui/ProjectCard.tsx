@@ -13,7 +13,7 @@ interface ProjectCardProps {
   featured?: boolean;
 }
 
-const ProjectCard = ({ title, description, technologies, github, demo, image, index, category, featured }: ProjectCardProps) => {
+const ProjectCard = ({ title, description, technologies, github, demo, index, featured }: ProjectCardProps) => {
   const [isHovered, setIsHovered] = useState(false);
 
   return (

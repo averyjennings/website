@@ -46,7 +46,7 @@ const About = () => {
       opacity: 1,
       y: 0,
       transition: {
-        type: "spring",
+        type: "spring" as const,
         stiffness: 100,
         damping: 10,
       },
@@ -137,7 +137,7 @@ const About = () => {
                 { label: 'Years Experience', value: '5+' },
                 { label: 'Projects Completed', value: '50+' },
                 { label: 'Happy Clients', value: '30+' },
-              ].map((stat, index) => (
+              ].map((stat) => (
                 <motion.div
                   key={stat.label}
                   className="text-center p-4 bg-gray-50 dark:bg-gray-800 rounded-lg"

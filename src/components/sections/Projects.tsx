@@ -202,7 +202,7 @@ const Projects = () => {
           viewport={{ once: true }}
         >
           <motion.a
-            href={`https://github.com/${process.env.VITE_GITHUB_USERNAME || 'yourusername'}`}
+            href={`https://github.com/${import.meta.env.VITE_GITHUB_USERNAME || 'yourusername'}`}
             target="_blank"
             rel="noopener noreferrer"
             className="inline-flex items-center gap-2 text-primary-600 dark:text-primary-400 hover:text-primary-700 dark:hover:text-primary-300 font-medium transition-colors"
