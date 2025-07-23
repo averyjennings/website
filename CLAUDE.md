@@ -14,6 +14,10 @@ Claude Code is responsible for managing all git interactions for this project, i
 - Pushing changes to the remote repository
 - Handling merge conflicts if they arise
 
+## Visual Feedback & Screenshots
+
+When the user mentions "check the screenshots" or asks you to look at uploaded screenshots, check the `website/screenshots/` directory. This directory contains visual feedback of the UI for validation purposes. Use the Read tool to view PNG/JPG files in this directory to understand the current visual state of the website and identify any UI issues that need fixing.
+
 ## Development Commands
 
 ```bash

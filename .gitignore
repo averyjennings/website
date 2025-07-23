@@ -60,3 +60,7 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Screenshots (keep README.md)
+screenshots/*
+!screenshots/README.md

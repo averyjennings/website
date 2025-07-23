@@ -1,14 +1,18 @@
+import Layout from './components/layout/Layout';
+import Hero from './components/sections/Hero';
+import About from './components/sections/About';
+import Projects from './components/sections/Projects';
+import Contact from './components/sections/Contact';
+
 function App() {
   return (
-    <div className="min-h-screen bg-gray-50">
-      <h1 className="text-4xl font-bold text-center py-8">
-        Portfolio Website
-      </h1>
-      <p className="text-center text-gray-600">
-        Welcome to my portfolio!
-      </p>
-    </div>
-  )
+    <Layout>
+      <Hero />
+      <About />
+      <Projects />
+      <Contact />
+    </Layout>
+  );
 }
 
 export default App
