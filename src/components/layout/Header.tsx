@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { motion } from 'framer-motion';
+import { ThemeToggle } from '@/components/ui/ThemeToggle';
 
 const Header = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -12,7 +13,7 @@ const Header = () => {
   ];
 
   return (
-    <header className="fixed top-0 left-0 right-0 bg-white/90 backdrop-blur-md border-b border-gray-200 z-50 shadow-sm">
+    <header className="fixed top-0 left-0 right-0 bg-white/90 dark:bg-gray-900/90 backdrop-blur-md border-b border-gray-200 dark:border-gray-700 z-50 shadow-sm">
       <nav className="container mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16">
           {/* Logo */}
@@ -22,14 +23,14 @@ const Header = () => {
             transition={{ duration: 0.5 }}
             className="flex-shrink-0"
           >
-            <a href="#home" className="text-xl font-bold text-gray-900">
+            <a href="#home" className="text-xl font-bold text-gray-900 dark:text-white">
               Portfolio
             </a>
           </motion.div>
 
           {/* Desktop Navigation */}
-          <div className="hidden sm:block">
-            <div className="ml-10 flex items-baseline space-x-4">
+          <div className="hidden sm:flex items-center space-x-4">
+            <div className="flex items-baseline space-x-4">
               {navItems.map((item, index) => (
                 <motion.a
                   key={item.name}
@@ -37,19 +38,21 @@ const Header = () => {
                   initial={{ opacity: 0, y: -20 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ duration: 0.5, delay: index * 0.1 }}
-                  className="text-gray-700 hover:text-gray-900 px-3 py-2 rounded-md text-sm font-medium transition-colors"
+                  className="text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white px-3 py-2 rounded-md text-sm font-medium transition-colors"
                 >
                   {item.name}
                 </motion.a>
               ))}
             </div>
+            <ThemeToggle />
           </div>
 
-          {/* Mobile menu button */}
-          <div className="sm:hidden">
+          {/* Mobile menu button and theme toggle */}
+          <div className="flex items-center space-x-2 sm:hidden">
+            <ThemeToggle />
             <button
               onClick={() => setIsMenuOpen(!isMenuOpen)}
-              className="inline-flex items-center justify-center p-2 rounded-md text-gray-700 hover:text-gray-900 hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-blue-500"
+              className="inline-flex items-center justify-center p-2 rounded-md text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-primary-500"
             >
               <span className="sr-only">Open main menu</span>
               <svg
@@ -92,7 +95,7 @@ const Header = () => {
                 <a
                   key={item.name}
                   href={item.href}
-                  className="text-gray-700 hover:text-gray-900 block px-3 py-2 rounded-md text-base font-medium"
+                  className="text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white block px-3 py-2 rounded-md text-base font-medium"
                   onClick={() => setIsMenuOpen(false)}
                 >
                   {item.name}

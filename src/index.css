@@ -8,30 +8,15 @@
   }
   
   body {
-    @apply antialiased bg-white text-gray-900;
+    @apply antialiased bg-white text-gray-900 dark:bg-gray-950 dark:text-gray-100 transition-colors;
     font-family: 'Inter', system-ui, -apple-system, sans-serif;
-  }
-  
-  /* Better text rendering */
-  * {
-    -webkit-font-smoothing: antialiased;
-    -moz-osx-font-smoothing: grayscale;
-  }
-  
-  /* Focus styles */
-  *:focus {
-    @apply outline-none;
-  }
-  
-  *:focus-visible {
-    @apply ring-2 ring-blue-500 ring-offset-2;
   }
 }
 
-@layer components {
-  /* Gradient text that works */
+@layer utilities {
+  /* Gradient text utility */
   .gradient-text {
-    @apply bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent;
+    background: linear-gradient(to right, theme('colors.primary.600'), theme('colors.secondary.600'));
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;
@@ -39,8 +24,27 @@
   
   /* Animated gradient background */
   .gradient-bg {
-    background: linear-gradient(-45deg, #ee7752, #e73c7e, #23a6d5, #23d5ab);
+    background: linear-gradient(-45deg, theme('colors.primary.500'), theme('colors.secondary.500'), theme('colors.primary.400'), theme('colors.secondary.400'));
     background-size: 400% 400%;
     animation: gradient 15s ease infinite;
+  }
+  
+  /* Primary gradient background */
+  .gradient-primary {
+    background: linear-gradient(135deg, theme('colors.primary.600'), theme('colors.secondary.600'));
+  }
+  
+  /* Light gradient background */
+  .gradient-light {
+    background: linear-gradient(135deg, theme('colors.primary.50'), theme('colors.secondary.50'));
+  }
+}
+
+@keyframes gradient {
+  0%, 100% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
   }
 }

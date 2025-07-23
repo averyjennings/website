@@ -8,7 +8,7 @@ const About = () => {
   ];
 
   return (
-    <section id="about" className="py-20 bg-white">
+    <section id="about" className="py-20 bg-white dark:bg-gray-900">
       <div className="container mx-auto px-4 sm:px-6 lg:px-8">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
@@ -17,8 +17,8 @@ const About = () => {
           viewport={{ once: true }}
           className="text-center mb-12"
         >
-          <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">About Me</h2>
-          <p className="text-lg text-gray-600 max-w-2xl mx-auto">
+          <h2 className="text-3xl md:text-4xl font-bold text-gray-900 dark:text-gray-100 mb-4">About Me</h2>
+          <p className="text-lg text-gray-600 dark:text-gray-300 max-w-2xl mx-auto">
             Passionate about creating elegant solutions to complex problems
           </p>
         </motion.div>
@@ -31,10 +31,10 @@ const About = () => {
             transition={{ duration: 0.5, delay: 0.2 }}
             viewport={{ once: true }}
           >
-            <h3 className="text-2xl font-semibold text-gray-900 mb-4">
+            <h3 className="text-2xl font-semibold text-gray-900 dark:text-gray-100 mb-4">
               Building the future, one line at a time
             </h3>
-            <div className="space-y-4 text-gray-600">
+            <div className="space-y-4 text-gray-600 dark:text-gray-300">
               <p>
                 I'm a software engineer with a passion for creating innovative solutions that make
                 a difference. With expertise in modern web technologies, I specialize in building
@@ -61,8 +61,8 @@ const About = () => {
             className="space-y-6"
           >
             {skills.map((skillGroup, index) => (
-              <div key={skillGroup.category} className="bg-gray-50 rounded-xl p-6">
-                <h4 className="text-lg font-semibold text-gray-900 mb-4">{skillGroup.category}</h4>
+              <div key={skillGroup.category} className="bg-gray-50 dark:bg-gray-800 rounded-xl p-6">
+                <h4 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">{skillGroup.category}</h4>
                 <div className="flex flex-wrap gap-2">
                   {skillGroup.items.map((skill, skillIndex) => (
                     <motion.span
@@ -71,7 +71,7 @@ const About = () => {
                       whileInView={{ opacity: 1, scale: 1 }}
                       transition={{ duration: 0.3, delay: index * 0.1 + skillIndex * 0.05 }}
                       viewport={{ once: true }}
-                      className="px-4 py-2 bg-white text-gray-700 rounded-full text-sm font-medium hover:bg-blue-50 hover:text-blue-600 transition-all duration-200 shadow-sm"
+                      className="px-4 py-2 bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-200 rounded-full text-sm font-medium hover:bg-blue-50 dark:hover:bg-gray-600 hover:text-blue-600 dark:hover:text-blue-400 transition-all duration-200 shadow-sm"
                     >
                       {skill}
                     </motion.span>

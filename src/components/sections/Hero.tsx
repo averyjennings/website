@@ -5,7 +5,7 @@ const Hero = () => {
   return (
     <section id="home" className="relative min-h-screen flex items-center justify-center overflow-hidden">
       {/* Gradient Background */}
-      <div className="absolute inset-0 bg-gradient-to-br from-blue-50 via-white to-indigo-100" />
+      <div className="absolute inset-0 bg-gradient-to-br from-primary-50 via-white to-secondary-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900" />
       
       {/* Content */}
       <div className="relative z-10 container mx-auto px-4 sm:px-6 lg:px-8 py-20">
@@ -15,7 +15,7 @@ const Hero = () => {
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5 }}
           >
-            <h1 className="text-5xl md:text-6xl lg:text-7xl font-bold text-gray-900 mb-6">
+            <h1 className="text-5xl md:text-6xl lg:text-7xl font-bold text-gray-900 dark:text-gray-100 mb-6">
               Hi, I'm{' '}
               <span className="gradient-text inline-block font-extrabold">
                 Your Name
@@ -27,7 +27,7 @@ const Hero = () => {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5, delay: 0.2 }}
-            className="text-xl md:text-2xl text-gray-600 mb-8 max-w-3xl mx-auto"
+            className="text-xl md:text-2xl text-gray-600 dark:text-gray-300 mb-8 max-w-3xl mx-auto"
           >
             Software Engineer passionate about building exceptional digital experiences
           </motion.p>
@@ -54,7 +54,7 @@ const Hero = () => {
           transition={{ duration: 0.5, delay: 0.8 }}
           className="absolute bottom-8 left-1/2 transform -translate-x-1/2"
         >
-          <a href="#about" className="text-gray-400 hover:text-gray-600 transition-colors">
+          <a href="#about" className="text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300 transition-colors">
             <svg
               className="w-6 h-6 animate-bounce"
               fill="none"
