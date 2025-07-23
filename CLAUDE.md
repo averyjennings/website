@@ -92,6 +92,8 @@ The project follows a 16-day implementation plan:
 - Days 11-14: GitHub Integration implementation
 - Days 15-16: Final polish and launch
 
+**Timeline Tracking**: Always update `plans/06-consolidated-timeline.md` as tasks are completed. Mark completed tasks with `[x]` and add completion notes where relevant.
+
 ### Key Services to Implement
 - `services/analytics.ts` - Performance metrics collection
 - `services/github-api.ts` - GitHub data fetching with caching
