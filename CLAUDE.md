@@ -85,6 +85,52 @@ mcp__playwright__browser_resize(width, height)
 - Ensure interactive elements (buttons, forms, links) function properly
 - Test the Performance Dashboard charts and GitHub Integration features thoroughly
 
+## Vercel Deployment with Playwright
+
+Playwright MCP can be used to manage Vercel deployments through the web interface. This is particularly useful for monitoring deployment status, accessing deployment logs, and managing project settings.
+
+### Key Deployment URLs
+- **Project Dashboard**: `https://vercel.com/avery-jennings-projects/avery-portfolio`
+- **Live Website**: `https://avery-portfolio-eosin.vercel.app/`
+- **GitHub Repository**: `https://github.com/averyjennings/website`
+
+### Deployment Workflow with Playwright
+
+1. **Navigate to Vercel Project**:
+   ```javascript
+   mcp__playwright__browser_navigate("https://vercel.com/avery-jennings-projects/avery-portfolio")
+   ```
+
+2. **Monitor Deployment Status**:
+   - Check deployment status in the Production Deployment section
+   - View build logs and runtime logs
+   - Monitor performance metrics and analytics
+
+3. **Visit Deployed Site**:
+   - Click "Visit" button to open the live website
+   - Test functionality on the production environment
+   - Verify all features work correctly
+
+### Automatic Deployment Process
+- **Trigger**: Push commits to the `master` branch
+- **Source**: GitHub repository auto-sync
+- **Build**: Automatic Vite build process
+- **Deploy**: Instant deployment to Vercel edge network
+- **Monitoring**: Real-time deployment status and logs
+
+### Using Playwright for Deployment Management
+- **Check deployment status**: Navigate to project dashboard
+- **View build logs**: Click "Build Logs" link
+- **Monitor analytics**: Access Analytics and Speed Insights
+- **Manage domains**: Configure custom domains via Settings
+- **Instant rollback**: Use rollback feature if issues occur
+
+### Best Practices
+- Verify deployment success through Playwright after each push
+- Test critical user flows on the live site
+- Monitor performance metrics regularly
+- Use Vercel's preview deployments for testing branches
+
 ## Development Commands
 
 ```bash
