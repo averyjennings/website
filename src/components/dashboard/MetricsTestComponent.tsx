@@ -292,7 +292,7 @@ export function MetricsTestComponent() {
                   onChange={(e) => setSelectedMetric(e.target.value)}
                   className="px-3 py-1 text-sm border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
                 >
-                  <option value="all">All Metrics + Page Visits</option>
+                  <option value="all">All Metrics</option>
                   <option value="page-visits">Page Visits</option>
                   <option value="unique-visitors">Unique Visitors</option>
                   {Object.entries(METRIC_INFO).map(([key, info]) => (
@@ -316,7 +316,7 @@ export function MetricsTestComponent() {
             title={chartType === 'doughnut' 
               ? 'Performance Rating Distribution' 
               : selectedMetric === 'all' 
-                ? 'All Metrics + Page Visits Over Time'
+                ? 'All Metrics Over Time'
                 : selectedMetric === 'page-visits'
                   ? 'Page Visits Over Time'
                   : selectedMetric === 'unique-visitors'

@@ -6,17 +6,17 @@ const About = () => {
   const skills = [
     { 
       category: 'Frontend', 
-      items: ['React', 'TypeScript', 'Tailwind CSS', 'Next.js', 'Vue.js', 'Framer Motion'],
+      items: ['React', 'TypeScript', 'JavaScript', 'HTML/CSS', 'Responsive Design'],
       color: 'from-blue-500 to-cyan-500'
     },
     { 
       category: 'Backend', 
-      items: ['Node.js', 'Python', 'PostgreSQL', 'MongoDB', 'GraphQL', 'Redis'],
+      items: ['Node.js', 'Python', 'REST APIs', 'Database Design', 'Server Architecture'],
       color: 'from-green-500 to-emerald-500'
     },
     { 
-      category: 'Tools & Cloud', 
-      items: ['Git', 'Docker', 'AWS', 'CI/CD', 'Kubernetes', 'Terraform'],
+      category: 'Cloud & Tools', 
+      items: ['AWS', 'Git', 'CI/CD', 'Docker', 'Linux', 'Agile'],
       color: 'from-purple-500 to-pink-500'
     },
   ];

@@ -1,0 +1,113 @@
+name: Supabase Keep-Alive
+
+on:
+  schedule:
+    # Run twice weekly: Tuesday and Friday at 10:00 AM UTC
+    - cron: '0 10 * * 2,5'
+  workflow_dispatch: # Allow manual trigger for testing
+
+jobs:
+  keep-alive:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Keep Supabase Active
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
+        run: |
+          node -e "
+          const { createClient } = require('@supabase/supabase-js');
+          
+          if (!process.env.SUPABASE_URL || !process.env.SUPABASE_ANON_KEY) {
+            console.log('⚠️  Supabase credentials not configured yet');
+            process.exit(0);
+          }
+          
+          const supabase = createClient(
+            process.env.SUPABASE_URL, 
+            process.env.SUPABASE_ANON_KEY,
+            { db: { schema: 'analytics' } }
+          );
+          
+          async function keepAlive() {
+            try {
+              console.log('🔄 Running Supabase keep-alive check...');
+              
+              // Try to call the keep_alive function if it exists
+              const { data: keepAliveData, error: keepAliveError } = await supabase
+                .rpc('keep_alive');
+              
+              if (!keepAliveError && keepAliveData) {
+                console.log('✅ Keep-alive function called successfully:', keepAliveData);
+                return;
+              }
+              
+              // Fallback: Query visitors table to maintain activity
+              const { data, error } = await supabase
+                .from('visitors')
+                .select('count', { count: 'exact', head: true })
+                .limit(1);
+              
+              if (error) {
+                // If table doesn't exist yet, that's okay - project is still being set up
+                if (error.code === 'PGRST116' || error.message.includes('does not exist')) {
+                  console.log('ℹ️  Analytics tables not created yet - this is normal during setup');
+                  return;
+                }
+                throw error;
+              }
+              
+              const timestamp = new Date().toISOString();
+              console.log('✅ Supabase keep-alive successful at', timestamp);
+              console.log('📊 Current visitor count:', data?.length || 0);
+              
+              // Optional: Test write access by inserting a keep-alive record
+              const { error: insertError } = await supabase
+                .from('page_visits')
+                .insert({
+                  user_id: 'keepalive_bot',
+                  session_id: 'github_actions_' + Date.now(),
+                  url: '/api/keepalive',
+                  timestamp: timestamp,
+                  user_agent: 'GitHub Actions Keep-Alive Bot'
+                });
+              
+              if (insertError && !insertError.message.includes('does not exist')) {
+                console.log('⚠️  Insert test failed (this is normal if RLS policies are strict):', insertError.message);
+              } else if (!insertError) {
+                console.log('✅ Write access test successful');
+                
+                // Clean up the test record
+                await supabase
+                  .from('page_visits')
+                  .delete()
+                  .eq('user_id', 'keepalive_bot');
+              }
+              
+            } catch (err) {
+              console.error('❌ Keep-alive failed:', err.message);
+              console.error('Full error:', err);
+              process.exit(1);
+            }
+          }
+          
+          keepAlive();
+          "
+
+      - name: Keep-alive completed
+        run: |
+          echo "🎉 Supabase keep-alive completed successfully!"
+          echo "📅 Next run: $(date -d 'next tuesday' '+%Y-%m-%d %H:%M UTC') or $(date -d 'next friday' '+%Y-%m-%d %H:%M UTC')"

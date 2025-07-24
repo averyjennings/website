@@ -363,6 +363,7 @@ class AnalyticsService {
   public getAllMetricsWithVisitorData(timeRange: '1h' | '24h' | '7d' | '30d' = '24h') {
     const webVitalsData = this.getStoredData();
     const pageVisitData = this.getPageVisitsOverTime(timeRange);
+    const uniqueVisitorData = this.getUniqueVisitorsOverTime(timeRange);
     
     // Filter web vitals by time range
     const now = Date.now();
@@ -388,7 +389,19 @@ class AnalyticsService {
       navigationType: 'navigate' as const,
     }));
     
-    return [...filteredWebVitals, ...pageVisitMetrics];
+    // Convert unique visitor data to metric format
+    const uniqueVisitorMetrics = uniqueVisitorData.map(uv => ({
+      id: `uv-${uv.timestamp}`,
+      name: 'Unique Visitors' as any,
+      value: uv.value,
+      rating: 'good' as const,
+      delta: 0,
+      timestamp: uv.timestamp,
+      url: window.location.href,
+      navigationType: 'navigate' as const,
+    }));
+    
+    return [...filteredWebVitals, ...pageVisitMetrics, ...uniqueVisitorMetrics];
   }
 
   // Get aggregated statistics for each metric type
@@ -484,16 +497,28 @@ class AnalyticsService {
       const cutoff = now - ranges[timeRange];
       const filteredVisits = pageVisits.filter((v: any) => v.timestamp >= cutoff);
       
-      // Group visits by time intervals
-      const intervalMs = timeRange === '1h' ? 5 * 60 * 1000 : // 5-minute intervals
-                        timeRange === '24h' ? 60 * 60 * 1000 : // 1-hour intervals  
-                        24 * 60 * 60 * 1000; // 1-day intervals
+      // Define appropriate intervals for different time ranges
+      const intervalMs = timeRange === '1h' ? 2 * 60 * 1000 : // 2-minute intervals
+                        timeRange === '24h' ? 30 * 60 * 1000 : // 30-minute intervals
+                        timeRange === '7d' ? 2 * 60 * 60 * 1000 : // 2-hour intervals
+                        6 * 60 * 60 * 1000; // 6-hour intervals for 30d
       
+      // Create time buckets with zero values
       const groupedVisits: { [key: number]: number } = {};
+      const startTime = Math.floor(cutoff / intervalMs) * intervalMs;
+      const endTime = Math.floor(now / intervalMs) * intervalMs;
       
+      // Initialize all time buckets with zero
+      for (let time = startTime; time <= endTime; time += intervalMs) {
+        groupedVisits[time] = 0;
+      }
+      
+      // Fill in actual visit counts
       filteredVisits.forEach((visit: any) => {
         const intervalStart = Math.floor(visit.timestamp / intervalMs) * intervalMs;
-        groupedVisits[intervalStart] = (groupedVisits[intervalStart] || 0) + 1;
+        if (groupedVisits[intervalStart] !== undefined) {
+          groupedVisits[intervalStart]++;
+        }
       });
       
       // Convert to array format for charting
@@ -526,19 +551,28 @@ class AnalyticsService {
       const cutoff = now - ranges[timeRange];
       const filteredVisitors = visitors.filter((v: any) => v.firstVisit >= cutoff);
       
-      // Group visitors by time intervals based on their first visit
-      const intervalMs = timeRange === '1h' ? 5 * 60 * 1000 : // 5-minute intervals
-                        timeRange === '24h' ? 60 * 60 * 1000 : // 1-hour intervals  
-                        24 * 60 * 60 * 1000; // 1-day intervals
+      // Define appropriate intervals for different time ranges
+      const intervalMs = timeRange === '1h' ? 2 * 60 * 1000 : // 2-minute intervals
+                        timeRange === '24h' ? 30 * 60 * 1000 : // 30-minute intervals
+                        timeRange === '7d' ? 2 * 60 * 60 * 1000 : // 2-hour intervals
+                        6 * 60 * 60 * 1000; // 6-hour intervals for 30d
       
+      // Create time buckets with empty sets
       const groupedVisitors: { [key: number]: Set<string> } = {};
+      const startTime = Math.floor(cutoff / intervalMs) * intervalMs;
+      const endTime = Math.floor(now / intervalMs) * intervalMs;
       
+      // Initialize all time buckets with empty sets
+      for (let time = startTime; time <= endTime; time += intervalMs) {
+        groupedVisitors[time] = new Set();
+      }
+      
+      // Fill in actual unique visitors
       filteredVisitors.forEach((visitor: any) => {
         const intervalStart = Math.floor(visitor.firstVisit / intervalMs) * intervalMs;
-        if (!groupedVisitors[intervalStart]) {
-          groupedVisitors[intervalStart] = new Set();
+        if (groupedVisitors[intervalStart]) {
+          groupedVisitors[intervalStart].add(visitor.userId);
         }
-        groupedVisitors[intervalStart].add(visitor.userId);
       });
       
       // Convert to array format for charting
