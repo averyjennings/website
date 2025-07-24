@@ -8,7 +8,8 @@ export interface UseWebVitalsReturn {
   loading: boolean;
   error: string | null;
   stats: {
-    totalMetrics: number;
+    uniqueVisitors: number;
+    totalPageVisits: number;
     last24Hours: number;
     lastWeek: number;
     sessionId: string;

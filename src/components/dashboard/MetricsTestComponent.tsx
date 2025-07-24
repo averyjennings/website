@@ -4,7 +4,7 @@ import { METRIC_INFO, analyticsService } from '@/services/analytics';
 import { useState, useMemo } from 'react';
 
 export function MetricsTestComponent() {
-  const { metrics, loading, error, stats, refreshData, clearData, exportData } = useWebVitals();
+  const { metrics, loading, error, stats, refreshData, exportData } = useWebVitals();
   const [chartType, setChartType] = useState<'line' | 'bar' | 'doughnut'>('line');
   const [selectedMetric, setSelectedMetric] = useState<string>('all');
   const [timeRange, setTimeRange] = useState<'1h' | '24h' | '7d' | '30d'>('24h');
@@ -59,15 +59,15 @@ export function MetricsTestComponent() {
       {/* Stats Summary */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
         <div className="bg-white dark:bg-gray-800 p-4 rounded-lg shadow">
-          <h3 className="text-sm font-medium text-gray-500">Total Metrics</h3>
-          <p className="text-2xl font-bold text-gray-900 dark:text-white">{stats.totalMetrics}</p>
+          <h3 className="text-sm font-medium text-gray-500">Unique Visitors</h3>
+          <p className="text-2xl font-bold text-gray-900 dark:text-white">{stats.uniqueVisitors}</p>
         </div>
         <div className="bg-white dark:bg-gray-800 p-4 rounded-lg shadow">
-          <h3 className="text-sm font-medium text-gray-500">Last 24 Hours</h3>
-          <p className="text-2xl font-bold text-gray-900 dark:text-white">{stats.last24Hours}</p>
+          <h3 className="text-sm font-medium text-gray-500">Total Page Visits</h3>
+          <p className="text-2xl font-bold text-gray-900 dark:text-white">{stats.totalPageVisits}</p>
         </div>
         <div className="bg-white dark:bg-gray-800 p-4 rounded-lg shadow">
-          <h3 className="text-sm font-medium text-gray-500">Last Week</h3>
+          <h3 className="text-sm font-medium text-gray-500">Last Week Metrics</h3>
           <p className="text-2xl font-bold text-gray-900 dark:text-white">{stats.lastWeek}</p>
         </div>
         <div className="bg-white dark:bg-gray-800 p-4 rounded-lg shadow">
@@ -85,12 +85,6 @@ export function MetricsTestComponent() {
           className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 transition-colors"
         >
           Refresh Data
-        </button>
-        <button
-          onClick={clearData}
-          className="px-4 py-2 bg-red-500 text-white rounded hover:bg-red-600 transition-colors"
-        >
-          Clear Data
         </button>
         <button
           onClick={handleExportJSON}

@@ -58,11 +58,15 @@ export const METRIC_INFO = {
 class AnalyticsService {
   private static instance: AnalyticsService;
   private sessionId: string;
+  private userId: string;
   private storageKey = 'web-vitals-metrics';
+  private visitorStorageKey = 'analytics-visitors';
   private maxStorageEntries = 1000;
 
   private constructor() {
     this.sessionId = this.generateSessionId();
+    this.userId = this.getOrCreateUserId();
+    this.recordPageVisit();
   }
 
   public static getInstance(): AnalyticsService {
@@ -74,6 +78,88 @@ class AnalyticsService {
 
   private generateSessionId(): string {
     return `session_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+  }
+
+  private getOrCreateUserId(): string {
+    const stored = localStorage.getItem('analytics-user-id');
+    if (stored) {
+      return stored;
+    }
+    
+    const userId = `user_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    localStorage.setItem('analytics-user-id', userId);
+    return userId;
+  }
+
+  private recordPageVisit(): void {
+    try {
+      const visitData = {
+        userId: this.userId,
+        sessionId: this.sessionId,
+        timestamp: Date.now(),
+        url: window.location.href,
+        userAgent: navigator.userAgent,
+      };
+
+      // Record page visit for total count
+      const pageVisits = JSON.parse(localStorage.getItem('analytics-page-visits') || '[]');
+      pageVisits.push(visitData);
+      localStorage.setItem('analytics-page-visits', JSON.stringify(pageVisits));
+
+      // Record unique visitor
+      const visitors = JSON.parse(localStorage.getItem(this.visitorStorageKey) || '[]');
+      const existingVisitor = visitors.find((v: any) => v.userId === this.userId);
+      
+      if (!existingVisitor) {
+        visitors.push({
+          userId: this.userId,
+          firstVisit: Date.now(),
+          lastVisit: Date.now(),
+          visitCount: 1,
+        });
+      } else {
+        existingVisitor.lastVisit = Date.now();
+        existingVisitor.visitCount += 1;
+      }
+      
+      localStorage.setItem(this.visitorStorageKey, JSON.stringify(visitors));
+
+      // Send to Vercel Analytics
+      track('page-visit', {
+        userId: this.userId,
+        sessionId: this.sessionId,
+        url: window.location.pathname,
+        timestamp: new Date().toISOString(),
+      });
+    } catch (error) {
+      console.warn('Failed to record page visit:', error);
+    }
+  }
+
+  public recordManualPageVisit(): void {
+    this.recordPageVisit();
+  }
+
+  public getVisitorStats() {
+    try {
+      const visitors = JSON.parse(localStorage.getItem(this.visitorStorageKey) || '[]');
+      const pageVisits = JSON.parse(localStorage.getItem('analytics-page-visits') || '[]');
+      
+      return {
+        uniqueVisitors: visitors.length,
+        totalPageVisits: pageVisits.length,
+        currentUserId: this.userId,
+        currentSessionId: this.sessionId,
+      };
+    } catch (error) {
+      console.warn('Failed to get visitor stats:', error);
+      return {
+        uniqueVisitors: 0,
+        totalPageVisits: 0,
+        currentUserId: this.userId,
+        currentSessionId: this.sessionId,
+      };
+    }
   }
 
   private getRating(name: WebVitalMetric['name'], value: number): 'good' | 'needs-improvement' | 'poor' {
@@ -220,12 +306,14 @@ class AnalyticsService {
 
   public getPerformanceStats() {
     const data = this.getStoredData();
+    const visitorStats = this.getVisitorStats();
     const now = Date.now();
     const last24Hours = now - (24 * 60 * 60 * 1000);
     const lastWeek = now - (7 * 24 * 60 * 60 * 1000);
 
     return {
-      totalMetrics: data.metrics.length,
+      uniqueVisitors: visitorStats.uniqueVisitors,
+      totalPageVisits: visitorStats.totalPageVisits,
       last24Hours: data.metrics.filter(m => m.timestamp >= last24Hours).length,
       lastWeek: data.metrics.filter(m => m.timestamp >= lastWeek).length,
       sessionId: data.sessionId,
