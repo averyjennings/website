@@ -185,6 +185,12 @@ class SupabaseAnalyticsService {
       return this.fallbackToLocalStorage('recordPageVisit');
     }
 
+    // Ensure we have a valid user ID before recording
+    if (!this.userId) {
+      console.warn('⚠️ Cannot record page visit: user ID not available');
+      return;
+    }
+
     try {
       // Record page visit
       const { error: visitError } = await supabase
@@ -200,6 +206,9 @@ class SupabaseAnalyticsService {
         });
 
       if (visitError) throw visitError;
+
+      // Log successful page visit recording for debugging
+      console.log(`✅ Page visit recorded: user_id=${this.userId}, url=${window.location.pathname}`);
 
       // Update visitor record
       await this.updateVisitorLastVisit();
