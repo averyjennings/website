@@ -13,6 +13,7 @@ import {
   SupabaseError
 } from '@/types/supabase-analytics';
 import { WebVitalMetric, PerformanceData, WebVitalThresholds } from '@/types/performance';
+import { METRIC_INFO } from '@/services/analytics';
 
 // Web Vitals thresholds (unchanged from original)
 export const WEB_VITAL_THRESHOLDS: WebVitalThresholds = {
@@ -73,6 +74,7 @@ class SupabaseAnalyticsService {
   private userId: string;
   private config: AnalyticsServiceConfig;
   private isSupabaseAvailable: boolean = false;
+  private initializationPromise: Promise<void> | null = null;
 
   private constructor() {
     this.sessionId = this.generateSessionId();
@@ -84,7 +86,8 @@ class SupabaseAnalyticsService {
       fallbackToLocalStorage: true
     };
     
-    this.initializeService();
+    // Start initialization but don't await it in constructor
+    this.initializationPromise = this.initializeService();
   }
 
   public static getInstance(): SupabaseAnalyticsService {
@@ -99,7 +102,11 @@ class SupabaseAnalyticsService {
       this.isSupabaseAvailable = await testSupabaseConnection();
       if (this.isSupabaseAvailable) {
         console.log('🚀 Supabase Analytics Service initialized');
+        // First ensure visitor record exists
+        await this.recordVisitor();
+        // Then record the page visit
         await this.recordPageVisit();
+        // Don't pre-populate cache during initialization to avoid circular dependency
       } else {
         console.warn('⚠️ Supabase unavailable, falling back to localStorage');
       }
@@ -210,21 +217,38 @@ class SupabaseAnalyticsService {
   }
 
   private async updateVisitorLastVisit(): Promise<void> {
-    const { error } = await supabase
-      .rpc('increment_visitor_count', {
-        p_user_id: this.userId,
-        p_last_visit: new Date().toISOString()
-      });
+    try {
+      // First, get the current visitor record
+      const { data: visitor, error: fetchError } = await supabase
+        .from('visitors')
+        .select('visit_count')
+        .eq('user_id', this.userId)
+        .single();
 
-    if (error) {
-      // Fallback to manual update if RPC function doesn't exist yet
-      await supabase
+      if (fetchError) {
+        // If visitor record doesn't exist, create it
+        if (fetchError.code === 'PGRST116') {
+          await this.recordVisitor();
+          return;
+        }
+        console.error('Failed to fetch visitor record:', fetchError);
+        return;
+      }
+
+      // Update the visitor record with incremented visit count
+      const { error: updateError } = await supabase
         .from('visitors')
         .update({
           last_visit: new Date().toISOString(),
-          visit_count: supabase.rpc('visitors.visit_count + 1')
+          visit_count: (visitor?.visit_count || 0) + 1
         })
         .eq('user_id', this.userId);
+
+      if (updateError) {
+        console.error('Failed to update visitor record:', updateError);
+      }
+    } catch (error) {
+      console.error('Error updating visitor last visit:', error);
     }
   }
 
@@ -316,23 +340,16 @@ class SupabaseAnalyticsService {
 
   // Data Retrieval Methods
   public async getVisitorStats(timeRange: '1h' | '24h' | '7d' | '30d' = '24h'): Promise<VisitorStats> {
-    if (!this.isSupabaseAvailable) {
-      return this.fallbackToLocalStorage('getVisitorStats', timeRange);
+    // Wait for initialization to complete
+    if (this.initializationPromise) {
+      await this.initializationPromise;
     }
-
+    
+    // Always try Supabase first
     try {
       const config = this.getTimeRangeConfig(timeRange);
       
-      // Get unique visitors in time range
-      const { data: visitorsData, error: visitorsError } = await supabase
-        .from('visitors')
-        .select('*')
-        .gte('first_visit', config.startTime)
-        .lte('first_visit', config.endTime);
-
-      if (visitorsError) throw visitorsError;
-
-      // Get page visits in time range
+      // Get page visits in time range with distinct user_ids
       const { data: visitsData, error: visitsError } = await supabase
         .from('page_visits')
         .select('*')
@@ -340,6 +357,26 @@ class SupabaseAnalyticsService {
         .lte('timestamp', config.endTime);
 
       if (visitsError) throw visitsError;
+
+      // Count unique visitors from page visits in the filtered time range
+      const uniqueUserIds = new Set((visitsData || []).map(visit => visit.user_id).filter(Boolean));
+      const uniqueVisitors = uniqueUserIds.size;
+      const totalPageVisits = (visitsData || []).length;
+      
+      // Debug logging for production issues
+      if (process.env.NODE_ENV === 'development' || timeRange === '1h') {
+        console.log(`📊 Analytics Debug - ${timeRange}:`, {
+          totalRecords: visitsData?.length || 0,
+          uniqueUserIds: Array.from(uniqueUserIds),
+          uniqueCount: uniqueVisitors,
+          timeRange: `${config.startTime} to ${config.endTime}`,
+          sampleRecords: (visitsData || []).slice(0, 3).map(v => ({
+            user_id: v.user_id,
+            timestamp: v.timestamp,
+            url: v.url
+          }))
+        });
+      }
 
       // Calculate 24h and 7d metrics for backward compatibility
       const last24h = this.getTimeRangeConfig('24h');
@@ -356,8 +393,8 @@ class SupabaseAnalyticsService {
         .gte('timestamp', lastWeek.startTime);
 
       return {
-        uniqueVisitors: visitorsData?.length || 0,
-        totalPageVisits: visitsData?.length || 0,
+        uniqueVisitors: uniqueVisitors,
+        totalPageVisits: totalPageVisits,
         last24Hours: count24h || 0,
         lastWeek: countWeek || 0,
         sessionId: this.sessionId,
@@ -371,27 +408,37 @@ class SupabaseAnalyticsService {
   }
 
   public async getPageVisitsOverTime(timeRange: '1h' | '24h' | '7d' | '30d' = '24h'): Promise<ChartDataPoint[]> {
-    if (!this.isSupabaseAvailable) {
-      return this.fallbackToLocalStorage('getPageVisitsOverTime', timeRange);
-    }
-
     try {
       const config = this.getTimeRangeConfig(timeRange);
       
+      // Get page visits data
       const { data, error } = await supabase
-        .rpc('get_page_visits_time_series', {
-          start_time: config.startTime,
-          end_time: config.endTime,
-          interval_minutes: Math.floor(config.intervalMs / (60 * 1000))
-        });
+        .from('page_visits')
+        .select('timestamp')
+        .gte('timestamp', config.startTime)
+        .lte('timestamp', config.endTime)
+        .order('timestamp', { ascending: true });
 
       if (error) throw error;
 
-      return (data || []).map((item: any) => ({
-        timestamp: new Date(item.time_bucket).getTime(),
-        value: parseInt(item.count),
-        name: 'Page Visits' as const
-      }));
+      // Group by time intervals
+      const intervals = new Map<number, number>();
+      const intervalMs = config.intervalMs;
+      
+      (data || []).forEach((visit: any) => {
+        const timestamp = new Date(visit.timestamp).getTime();
+        const intervalStart = Math.floor(timestamp / intervalMs) * intervalMs;
+        intervals.set(intervalStart, (intervals.get(intervalStart) || 0) + 1);
+      });
+
+      // Convert to chart data points
+      return Array.from(intervals.entries())
+        .map(([timestamp, count]) => ({
+          timestamp,
+          value: count,
+          name: 'Page Visits' as const
+        }))
+        .sort((a, b) => a.timestamp - b.timestamp);
 
     } catch (error) {
       console.error('Failed to get page visits over time:', error);
@@ -400,27 +447,41 @@ class SupabaseAnalyticsService {
   }
 
   public async getUniqueVisitorsOverTime(timeRange: '1h' | '24h' | '7d' | '30d' = '24h'): Promise<ChartDataPoint[]> {
-    if (!this.isSupabaseAvailable) {
-      return this.fallbackToLocalStorage('getUniqueVisitorsOverTime', timeRange);
-    }
-
     try {
       const config = this.getTimeRangeConfig(timeRange);
       
+      // Get unique visitors grouped by time intervals
       const { data, error } = await supabase
-        .rpc('get_unique_visitors_time_series', {
-          start_time: config.startTime,
-          end_time: config.endTime,
-          interval_minutes: Math.floor(config.intervalMs / (60 * 1000))
-        });
+        .from('page_visits')
+        .select('user_id, timestamp')
+        .gte('timestamp', config.startTime)
+        .lte('timestamp', config.endTime)
+        .order('timestamp', { ascending: true });
 
       if (error) throw error;
 
-      return (data || []).map((item: any) => ({
-        timestamp: new Date(item.time_bucket).getTime(),
-        value: parseInt(item.count),
-        name: 'Unique Visitors' as const
-      }));
+      // Group by time intervals and count unique users
+      const intervals = new Map<number, Set<string>>();
+      const intervalMs = config.intervalMs;
+      
+      (data || []).forEach((visit: any) => {
+        const timestamp = new Date(visit.timestamp).getTime();
+        const intervalStart = Math.floor(timestamp / intervalMs) * intervalMs;
+        
+        if (!intervals.has(intervalStart)) {
+          intervals.set(intervalStart, new Set());
+        }
+        intervals.get(intervalStart)!.add(visit.user_id);
+      });
+
+      // Convert to chart data points
+      return Array.from(intervals.entries())
+        .map(([timestamp, userSet]) => ({
+          timestamp,
+          value: userSet.size,
+          name: 'Unique Visitors' as const
+        }))
+        .sort((a, b) => a.timestamp - b.timestamp);
 
     } catch (error) {
       console.error('Failed to get unique visitors over time:', error);
@@ -485,6 +546,224 @@ class SupabaseAnalyticsService {
     }
   }
 
+  // Get stored data from localStorage
+  public getStoredData(): PerformanceData & { pageVisits?: any[]; visitors?: any[] } {
+    try {
+      const stored = localStorage.getItem(this.storageKey);
+      const pageVisits = JSON.parse(localStorage.getItem('analytics-page-visits') || '[]');
+      const visitors = JSON.parse(localStorage.getItem('analytics-visitors') || '[]');
+      
+      if (stored) {
+        const parsed = JSON.parse(stored) as PerformanceData;
+        return {
+          metrics: parsed.metrics || [],
+          lastUpdated: parsed.lastUpdated || Date.now(),
+          sessionId: parsed.sessionId || this.sessionId,
+          pageVisits,
+          visitors,
+        };
+      }
+    } catch (error) {
+      console.error('Failed to parse stored data:', error);
+    }
+
+    return {
+      metrics: [],
+      lastUpdated: Date.now(),
+      sessionId: this.sessionId,
+      pageVisits: [],
+      visitors: [],
+    };
+  }
+
+  // Get performance scores and grades
+  public getPerformanceGrade(): {
+    overall: 'A' | 'B' | 'C' | 'D' | 'F';
+    scores: Record<WebVitalMetric['name'], number>;
+    recommendations: string[];
+  } {
+    const data = this.getStoredData();
+    const recent = data.metrics.filter(m => m.timestamp > Date.now() - (24 * 60 * 60 * 1000));
+    
+    const scores: Record<WebVitalMetric['name'], number> = {
+      CLS: 0,
+      FCP: 0, 
+      LCP: 0,
+      TTFB: 0,
+      INP: 0,
+    };
+
+    const recommendations: string[] = [];
+
+    // Calculate scores for each metric (0-100 scale)
+    Object.keys(scores).forEach(metricName => {
+      const name = metricName as WebVitalMetric['name'];
+      const metricData = recent.filter(m => m.name === name);
+      
+      if (metricData.length === 0) {
+        scores[name] = 0;
+        return;
+      }
+
+      const goodCount = metricData.filter(m => m.rating === 'good').length;
+      const needsImprovementCount = metricData.filter(m => m.rating === 'needs-improvement').length;
+      
+      // Score based on rating distribution
+      scores[name] = Math.round(
+        (goodCount / metricData.length) * 100 + 
+        (needsImprovementCount / metricData.length) * 50
+      );
+
+      // Add recommendations for poor performing metrics
+      if (scores[name] < 70) {
+        const info = METRIC_INFO[name];
+        recommendations.push(`Improve ${info.name}: ${info.context}`);
+      }
+    });
+
+    // Calculate overall grade
+    const averageScore = Object.values(scores).reduce((sum, score) => sum + score, 0) / 5;
+    let overall: 'A' | 'B' | 'C' | 'D' | 'F';
+    
+    if (averageScore >= 90) overall = 'A';
+    else if (averageScore >= 80) overall = 'B';
+    else if (averageScore >= 70) overall = 'C';
+    else if (averageScore >= 60) overall = 'D';
+    else overall = 'F';
+
+    return { overall, scores, recommendations };
+  }
+
+  // Get metric stats
+  public getMetricStats(metricName: WebVitalMetric['name'], timeRange: '1h' | '24h' | '7d' | '30d' = '24h'): {
+    latest: number;
+    average: number;
+    percentile95: number;
+    count: number;
+    trend: 'improving' | 'degrading' | 'stable';
+  } {
+    const data = this.getStoredData();
+    const config = this.getTimeRangeConfig(timeRange);
+    const metricData = data.metrics
+      .filter(m => m.name === metricName && m.timestamp >= config.startTime && m.timestamp <= config.endTime)
+      .sort((a, b) => a.timestamp - b.timestamp);
+    
+    if (metricData.length === 0) {
+      return { latest: 0, average: 0, percentile95: 0, count: 0, trend: 'stable' };
+    }
+
+    const values = metricData.map(m => m.value);
+    const latest = metricData[metricData.length - 1].value;
+    const average = values.reduce((sum, val) => sum + val, 0) / values.length;
+    
+    // Calculate 95th percentile
+    const sorted = [...values].sort((a, b) => a - b);
+    const index = Math.ceil(sorted.length * 0.95) - 1;
+    const percentile95 = sorted[index] || sorted[sorted.length - 1];
+    
+    // Determine trend
+    let trend: 'improving' | 'degrading' | 'stable' = 'stable';
+    if (metricData.length >= 3) {
+      const recentAvg = metricData.slice(-3).reduce((sum, m) => sum + m.value, 0) / 3;
+      const olderAvg = metricData.slice(0, 3).reduce((sum, m) => sum + m.value, 0) / 3;
+      
+      if (metricName === 'CLS') {
+        // Lower is better for CLS
+        if (recentAvg < olderAvg * 0.9) trend = 'improving';
+        else if (recentAvg > olderAvg * 1.1) trend = 'degrading';
+      } else {
+        // Lower is better for all time-based metrics
+        if (recentAvg < olderAvg * 0.9) trend = 'improving';
+        else if (recentAvg > olderAvg * 1.1) trend = 'degrading';
+      }
+    }
+
+    return { 
+      latest: Math.round(latest), 
+      average: Math.round(average), 
+      percentile95: Math.round(percentile95), 
+      count: metricData.length, 
+      trend 
+    };
+  }
+
+  // Make synchronous versions of async methods for backward compatibility
+  public getPageVisitsOverTimeSync(timeRange: '1h' | '24h' | '7d' | '30d' = '24h'): ChartDataPoint[] {
+    // Use local storage data for synchronous access
+    const data = this.getStoredData();
+    const config = this.getTimeRangeConfig(timeRange);
+    
+    const pageVisits = data.pageVisits?.filter(pv => 
+      pv.timestamp >= config.startTime && pv.timestamp <= config.endTime
+    ) || [];
+
+    return pageVisits.map(pv => ({
+      timestamp: pv.timestamp,
+      value: 1
+    }));
+  }
+
+  public getUniqueVisitorsOverTimeSync(timeRange: '1h' | '24h' | '7d' | '30d' = '24h'): ChartDataPoint[] {
+    // Use local storage data for synchronous access
+    const data = this.getStoredData();
+    const config = this.getTimeRangeConfig(timeRange);
+    
+    const visitors = data.visitors?.filter(v => 
+      v.timestamp >= config.startTime && v.timestamp <= config.endTime
+    ) || [];
+
+    const uniqueVisitorsByInterval = new Map<string, Set<string>>();
+    visitors.forEach(v => {
+      const interval = Math.floor(v.timestamp / config.interval) * config.interval;
+      if (!uniqueVisitorsByInterval.has(interval.toString())) {
+        uniqueVisitorsByInterval.set(interval.toString(), new Set());
+      }
+      uniqueVisitorsByInterval.get(interval.toString())!.add(v.userId);
+    });
+
+    return Array.from(uniqueVisitorsByInterval.entries()).map(([interval, userIds]) => ({
+      timestamp: parseInt(interval),
+      value: userIds.size
+    }));
+  }
+
+  public getAllMetricsWithVisitorDataSync(timeRange: '1h' | '24h' | '7d' | '30d' = '24h'): CombinedMetric[] {
+    const data = this.getStoredData();
+    const config = this.getTimeRangeConfig(timeRange);
+    
+    const metrics = data.metrics
+      .filter(m => m.timestamp >= config.startTime && m.timestamp <= config.endTime)
+      .map(m => ({ ...m, type: 'metric' as const }));
+    
+    const pageVisitData = this.getPageVisitsOverTimeSync(timeRange);
+    const pageVisits = pageVisitData.map(pv => ({
+      id: `pv-${pv.timestamp}`,
+      name: 'Page Visits' as any,
+      value: pv.value,
+      rating: 'good' as const,
+      delta: 0,
+      timestamp: pv.timestamp,
+      url: window.location.href,
+      navigationType: 'navigate' as const,
+      type: 'visitor' as const
+    }));
+
+    const visitorData = this.getUniqueVisitorsOverTimeSync(timeRange);
+    const uniqueVisitors = visitorData.map(uv => ({
+      id: `uv-${uv.timestamp}`,
+      name: 'Unique Visitors' as any,
+      value: uv.value,
+      rating: 'good' as const,
+      delta: 0,
+      timestamp: uv.timestamp,
+      url: window.location.href,
+      navigationType: 'navigate' as const,
+      type: 'visitor' as const
+    }));
+
+    return [...metrics, ...pageVisits, ...uniqueVisitors].sort((a, b) => a.timestamp - b.timestamp);
+  }
+
   private async getWebVitalsMetrics(timeRange: '1h' | '24h' | '7d' | '30d'): Promise<WebVitalMetric[]> {
     const config = this.getTimeRangeConfig(timeRange);
     
@@ -546,7 +825,34 @@ class SupabaseAnalyticsService {
 
   // Public methods for backward compatibility
   public getPerformanceStats(timeRange: '1h' | '24h' | '7d' | '30d' = '24h') {
-    return this.getVisitorStats(timeRange);
+    // Return cached stats synchronously, then update async in background
+    const cachedStats = this.getCachedStats(timeRange);
+    
+    // Update stats in background
+    this.getVisitorStats(timeRange).then(stats => {
+      this.cachedStats.set(timeRange, stats);
+    });
+    
+    return cachedStats;
+  }
+  
+  private cachedStats = new Map<string, VisitorStats>();
+  
+  private getCachedStats(timeRange: '1h' | '24h' | '7d' | '30d'): VisitorStats {
+    // Return cached stats if available
+    if (this.cachedStats.has(timeRange)) {
+      return this.cachedStats.get(timeRange)!;
+    }
+    
+    // Return default stats while loading
+    return {
+      uniqueVisitors: 0,
+      totalPageVisits: 0,
+      last24Hours: 0,
+      lastWeek: 0,
+      sessionId: this.sessionId,
+      lastUpdated: Date.now()
+    };
   }
 
   public recordManualPageVisit(): void {
@@ -575,6 +881,9 @@ class SupabaseAnalyticsService {
 
 // Export singleton instance
 export const supabaseAnalyticsService = SupabaseAnalyticsService.getInstance();
+
+// Export for direct access when needed
+export const { getVisitorStats } = supabaseAnalyticsService;
 
 // Global gtag type declaration
 declare global {

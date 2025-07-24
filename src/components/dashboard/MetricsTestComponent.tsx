@@ -1,7 +1,9 @@
 import { useWebVitals } from '@/hooks/useWebVitals';
 import { MetricsChart } from './MetricsChart';
-import { METRIC_INFO, analyticsService } from '@/services/analytics';
-import { useState, useMemo } from 'react';
+import { METRIC_INFO } from '@/services/analytics';
+import { supabaseAnalyticsService as analyticsService } from '@/services/supabase-analytics';
+import { useState, useMemo, useEffect } from 'react';
+import { SupabaseTest } from '@/components/SupabaseTest';
 
 export function MetricsTestComponent() {
   const { metrics, loading, error, getStats, refreshData, exportData } = useWebVitals();
@@ -10,9 +12,31 @@ export function MetricsTestComponent() {
   const [timeRange, setTimeRange] = useState<'1h' | '24h' | '7d' | '30d'>('24h');
 
   // Get stats based on selected timeRange
-  const stats = useMemo(() => {
-    return getStats(timeRange);
-  }, [getStats, timeRange]);
+  const [stats, setStats] = useState(() => getStats(timeRange));
+  const [statsLoading, setStatsLoading] = useState(true);
+  
+  useEffect(() => {
+    const fetchStats = async () => {
+      setStatsLoading(true);
+      
+      // Get initial cached stats
+      const cachedStats = getStats(timeRange);
+      setStats(cachedStats);
+      
+      // Fetch fresh stats from Supabase
+      try {
+        const freshStats = await analyticsService.getVisitorStats(timeRange);
+        setStats(freshStats);
+      } catch (error) {
+        console.error('Failed to fetch stats:', error);
+      } finally {
+        setStatsLoading(false);
+      }
+    };
+    
+    fetchStats();
+    refreshData();
+  }, [timeRange, getStats, refreshData]);
 
   // Get performance insights
   const performanceGrade = useMemo(() => {
@@ -30,9 +54,9 @@ export function MetricsTestComponent() {
   // Get visitor data for charting if needed
   const visitorData = useMemo(() => {
     if (selectedMetric === 'page-visits') {
-      return analyticsService.getPageVisitsOverTime(timeRange);
+      return analyticsService.getPageVisitsOverTimeSync(timeRange);
     } else if (selectedMetric === 'unique-visitors') {
-      return analyticsService.getUniqueVisitorsOverTime(timeRange);
+      return analyticsService.getUniqueVisitorsOverTimeSync(timeRange);
     }
     return [];
   }, [selectedMetric, timeRange]);
@@ -65,7 +89,7 @@ export function MetricsTestComponent() {
       }));
     } else if (selectedMetric === 'all') {
       // Get all metrics including page visits
-      return analyticsService.getAllMetricsWithVisitorData(timeRange);
+      return analyticsService.getAllMetricsWithVisitorDataSync(timeRange);
     }
     return metrics;
   }, [selectedMetric, visitorData, metrics, timeRange]);
@@ -125,11 +149,23 @@ export function MetricsTestComponent() {
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
         <div className="bg-white dark:bg-gray-800 p-4 rounded-lg shadow">
           <h3 className="text-sm font-medium text-gray-500">Unique Visitors</h3>
-          <p className="text-2xl font-bold text-gray-900 dark:text-white">{stats.uniqueVisitors}</p>
+          {statsLoading ? (
+            <div className="animate-pulse">
+              <div className="h-8 bg-gray-200 dark:bg-gray-600 rounded w-20"></div>
+            </div>
+          ) : (
+            <p className="text-2xl font-bold text-gray-900 dark:text-white">{stats.uniqueVisitors}</p>
+          )}
         </div>
         <div className="bg-white dark:bg-gray-800 p-4 rounded-lg shadow">
           <h3 className="text-sm font-medium text-gray-500">Total Page Visits</h3>
-          <p className="text-2xl font-bold text-gray-900 dark:text-white">{stats.totalPageVisits}</p>
+          {statsLoading ? (
+            <div className="animate-pulse">
+              <div className="h-8 bg-gray-200 dark:bg-gray-600 rounded w-20"></div>
+            </div>
+          ) : (
+            <p className="text-2xl font-bold text-gray-900 dark:text-white">{stats.totalPageVisits}</p>
+          )}
         </div>
       </div>
 
@@ -421,7 +457,7 @@ export function MetricsTestComponent() {
           <div>
             <h5 className="font-medium text-gray-700 dark:text-gray-300 mb-1">Data Storage:</h5>
             <ul className="space-y-1">
-              <li>• Metrics persist in browser localStorage</li>
+              <li>• Metrics persist in Supabase for cross-device access</li>
               <li>• Historical data enables trend analysis</li>
               <li>• Export options available for further analysis</li>
             </ul>
@@ -435,6 +471,11 @@ export function MetricsTestComponent() {
             </ul>
           </div>
         </div>
+      </div>
+
+      {/* Supabase Test Component */}
+      <div className="mt-6">
+        <SupabaseTest />
       </div>
     </div>
   );
