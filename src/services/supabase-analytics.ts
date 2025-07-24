@@ -104,9 +104,11 @@ class SupabaseAnalyticsService {
         console.log('🚀 Supabase Analytics Service initialized');
         // First ensure visitor record exists
         await this.recordVisitor();
+        // Wait a moment to ensure visitor record is committed before page visits
+        await new Promise(resolve => setTimeout(resolve, 100));
         // Then record the page visit
         await this.recordPageVisit();
-        // Don't pre-populate cache during initialization to avoid circular dependency
+        console.log('✅ Analytics initialization complete with valid user_id:', this.userId);
       } else {
         console.warn('⚠️ Supabase unavailable, falling back to localStorage');
       }
@@ -181,13 +183,18 @@ class SupabaseAnalyticsService {
   }
 
   public async recordPageVisit(): Promise<void> {
+    // Wait for initialization to complete if it's still in progress
+    if (this.initializationPromise) {
+      await this.initializationPromise;
+    }
+
     if (!this.isSupabaseAvailable) {
       return this.fallbackToLocalStorage('recordPageVisit');
     }
 
     // Ensure we have a valid user ID before recording
     if (!this.userId) {
-      console.warn('⚠️ Cannot record page visit: user ID not available');
+      console.warn('⚠️ Cannot record page visit: user ID not available after initialization');
       return;
     }
 
@@ -383,8 +390,13 @@ class SupabaseAnalyticsService {
           timeRange: `${config.startTime} to ${config.endTime}`,
           rawUserIds: (visitsData || []).map(v => v.user_id),
           nullUserIds: (visitsData || []).filter(v => !v.user_id).length,
-          sampleRecords: (visitsData || []).slice(0, 3).map(v => ({
+          undefinedUserIds: (visitsData || []).filter(v => v.user_id === undefined).length,
+          emptyStringUserIds: (visitsData || []).filter(v => v.user_id === '').length,
+          currentServiceUserId: this.userId,
+          isInitialized: !this.initializationPromise,
+          sampleRecords: (visitsData || []).slice(0, 5).map(v => ({
             user_id: v.user_id,
+            user_id_type: typeof v.user_id,
             timestamp: v.timestamp,
             url: v.url
           }))
@@ -393,11 +405,24 @@ class SupabaseAnalyticsService {
 
       // Additional error logging for debugging
       if (timeRange === '1h' && uniqueVisitors === 0 && totalPageVisits > 0) {
-        console.error(`🚨 Bug detected: ${totalPageVisits} page visits but 0 unique visitors for 1h range`, {
+        console.error(`🚨 RACE CONDITION BUG: ${totalPageVisits} page visits but 0 unique visitors for 1h range`, {
           config,
-          sampleVisits: (visitsData || []).slice(0, 5),
-          allUserIds: (visitsData || []).map(v => v.user_id),
-          currentTime: new Date().toISOString()
+          currentServiceUserId: this.userId,
+          serviceInitialized: !this.initializationPromise,
+          problematicRecords: (visitsData || []).map(v => ({
+            user_id: v.user_id,
+            user_id_type: typeof v.user_id,
+            user_id_length: v.user_id ? v.user_id.length : 0,
+            timestamp: v.timestamp,
+            url: v.url,
+            session_id: v.session_id
+          })),
+          currentTime: new Date().toISOString(),
+          userIdValidation: {
+            hasUserId: !!this.userId,
+            userIdType: typeof this.userId,
+            userIdLength: this.userId ? this.userId.length : 0
+          }
         });
       }
 
@@ -878,8 +903,12 @@ class SupabaseAnalyticsService {
     };
   }
 
-  public recordManualPageVisit(): void {
-    this.recordPageVisit();
+  public async recordManualPageVisit(): Promise<void> {
+    try {
+      await this.recordPageVisit();
+    } catch (error) {
+      console.error('Failed to record manual page visit:', error);
+    }
   }
 
   // Export functionality (maintained from original)
