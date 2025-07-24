@@ -7,7 +7,7 @@ export interface UseWebVitalsReturn {
   metrics: WebVitalMetric[];
   loading: boolean;
   error: string | null;
-  stats: {
+  getStats: (timeRange?: '1h' | '24h' | '7d' | '30d') => {
     uniqueVisitors: number;
     totalPageVisits: number;
     last24Hours: number;
@@ -141,13 +141,15 @@ export function useWebVitals(): UseWebVitalsReturn {
     return () => window.removeEventListener('storage', handleStorageChange);
   }, [refreshData]);
 
-  const stats = analyticsService.getPerformanceStats();
+  const getStats = useCallback((timeRange: '1h' | '24h' | '7d' | '30d' = '24h') => {
+    return analyticsService.getPerformanceStats(timeRange);
+  }, []);
 
   return {
     metrics: data.metrics,
     loading,
     error,
-    stats,
+    getStats,
     refreshData,
     clearData,
     exportData,

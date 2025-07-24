@@ -32,19 +32,20 @@ ChartJS.register(
 interface MetricsChartProps {
   metrics: WebVitalMetric[];
   type: 'line' | 'bar' | 'doughnut';
-  metricName?: WebVitalMetric['name'];
+  metricName?: WebVitalMetric['name'] | 'Page Visits';
   title?: string;
   timeRange?: '1h' | '24h' | '7d' | '30d';
   showLegend?: boolean;
   height?: number;
 }
 
-const METRIC_COLORS = {
+const METRIC_COLORS: Record<string, string> = {
   CLS: '#10B981', // green
   FCP: '#3B82F6', // blue  
   LCP: '#F59E0B', // amber
   TTFB: '#8B5CF6', // purple
   INP: '#EF4444', // red
+  'Page Visits': '#EC4899', // pink
 };
 
 const RATING_COLORS = {
@@ -122,10 +123,10 @@ export function MetricsChart({
           {
             label: metricName,
             data: values,
-            borderColor: METRIC_COLORS[metricName],
+            borderColor: METRIC_COLORS[metricName as string],
             backgroundColor: type === 'line' 
-              ? `${METRIC_COLORS[metricName]}20`
-              : METRIC_COLORS[metricName],
+              ? `${METRIC_COLORS[metricName as string]}20`
+              : METRIC_COLORS[metricName as string],
             fill: type === 'line',
             tension: 0.4,
           },
@@ -151,10 +152,10 @@ export function MetricsChart({
       return {
         label: metric,
         data: dataByTime,
-        borderColor: METRIC_COLORS[metric],
+        borderColor: METRIC_COLORS[metric as string],
         backgroundColor: type === 'line' 
-          ? `${METRIC_COLORS[metric]}20`
-          : METRIC_COLORS[metric],
+          ? `${METRIC_COLORS[metric as string]}20`
+          : METRIC_COLORS[metric as string],
         fill: type === 'line',
         tension: 0.4,
       };
@@ -196,11 +197,13 @@ export function MetricsChart({
               }
 
               let unit = '';
-              if (metric !== 'CLS') {
+              if (metric !== 'CLS' && metric !== 'Page Visits') {
                 unit = ' ms';
+              } else if (metric === 'Page Visits') {
+                unit = ' visits';
               }
 
-              return `${metric}: ${typeof value === 'number' ? value.toFixed(metric === 'CLS' ? 3 : 0) : value}${unit}`;
+              return `${metric}: ${typeof value === 'number' ? value.toFixed(metric === 'CLS' ? 3 : metric === 'Page Visits' ? 0 : 0) : value}${unit}`;
             },
           },
         },
@@ -225,7 +228,9 @@ export function MetricsChart({
           display: true,
           title: {
             display: true,
-            text: metricName === 'CLS' ? 'Score' : 'Time (ms)',
+            text: metricName === 'CLS' ? 'Score' : 
+                  (metricName as string) === 'Page Visits' ? 'Visits' : 
+                  'Time (ms)',
           },
           beginAtZero: true,
         },

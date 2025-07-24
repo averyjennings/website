@@ -304,9 +304,9 @@ class AnalyticsService {
     return JSON.stringify(data, null, 2);
   }
 
-  public getPerformanceStats() {
+  public getPerformanceStats(timeRange: '1h' | '24h' | '7d' | '30d' = '24h') {
     const data = this.getStoredData();
-    const visitorStats = this.getVisitorStats();
+    const visitorStats = this.getVisitorStatsInTimeRange(timeRange);
     const now = Date.now();
     const last24Hours = now - (24 * 60 * 60 * 1000);
     const lastWeek = now - (7 * 24 * 60 * 60 * 1000);
@@ -319,6 +319,44 @@ class AnalyticsService {
       sessionId: data.sessionId,
       lastUpdated: data.lastUpdated,
     };
+  }
+
+  public getVisitorStatsInTimeRange(timeRange: '1h' | '24h' | '7d' | '30d' = '24h') {
+    try {
+      const visitors = JSON.parse(localStorage.getItem(this.visitorStorageKey) || '[]');
+      const pageVisits = JSON.parse(localStorage.getItem('analytics-page-visits') || '[]');
+      
+      const now = Date.now();
+      const ranges = {
+        '1h': 60 * 60 * 1000,
+        '24h': 24 * 60 * 60 * 1000,
+        '7d': 7 * 24 * 60 * 60 * 1000,
+        '30d': 30 * 24 * 60 * 60 * 1000,
+      };
+      
+      const cutoff = now - ranges[timeRange];
+      
+      // Filter visitors by their first visit time within the timeframe
+      const filteredVisitors = visitors.filter((v: any) => v.firstVisit >= cutoff);
+      
+      // Filter page visits within the timeframe
+      const filteredPageVisits = pageVisits.filter((v: any) => v.timestamp >= cutoff);
+      
+      return {
+        uniqueVisitors: filteredVisitors.length,
+        totalPageVisits: filteredPageVisits.length,
+        currentUserId: this.userId,
+        currentSessionId: this.sessionId,
+      };
+    } catch (error) {
+      console.warn('Failed to get time-filtered visitor stats:', error);
+      return {
+        uniqueVisitors: 0,
+        totalPageVisits: 0,
+        currentUserId: this.userId,
+        currentSessionId: this.sessionId,
+      };
+    }
   }
 
   // Get aggregated statistics for each metric type
@@ -396,6 +434,48 @@ class AnalyticsService {
     if (changePercent < -5) return 'improving'; // Lower is better for most metrics
     if (changePercent > 5) return 'degrading';
     return 'stable';
+  }
+
+  // Get page visit data over time for charting
+  public getPageVisitsOverTime(timeRange: '1h' | '24h' | '7d' | '30d' = '24h') {
+    try {
+      const pageVisits = JSON.parse(localStorage.getItem('analytics-page-visits') || '[]');
+      
+      const now = Date.now();
+      const ranges = {
+        '1h': 60 * 60 * 1000,
+        '24h': 24 * 60 * 60 * 1000,
+        '7d': 7 * 24 * 60 * 60 * 1000,
+        '30d': 30 * 24 * 60 * 60 * 1000,
+      };
+      
+      const cutoff = now - ranges[timeRange];
+      const filteredVisits = pageVisits.filter((v: any) => v.timestamp >= cutoff);
+      
+      // Group visits by time intervals
+      const intervalMs = timeRange === '1h' ? 5 * 60 * 1000 : // 5-minute intervals
+                        timeRange === '24h' ? 60 * 60 * 1000 : // 1-hour intervals  
+                        24 * 60 * 60 * 1000; // 1-day intervals
+      
+      const groupedVisits: { [key: number]: number } = {};
+      
+      filteredVisits.forEach((visit: any) => {
+        const intervalStart = Math.floor(visit.timestamp / intervalMs) * intervalMs;
+        groupedVisits[intervalStart] = (groupedVisits[intervalStart] || 0) + 1;
+      });
+      
+      // Convert to array format for charting
+      return Object.entries(groupedVisits)
+        .map(([timestamp, count]) => ({
+          timestamp: parseInt(timestamp),
+          value: count,
+          name: 'Page Visits' as const,
+        }))
+        .sort((a, b) => a.timestamp - b.timestamp);
+    } catch (error) {
+      console.warn('Failed to get page visits over time:', error);
+      return [];
+    }
   }
 
   // Get performance scores and grades

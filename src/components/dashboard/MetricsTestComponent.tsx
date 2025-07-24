@@ -4,10 +4,15 @@ import { METRIC_INFO, analyticsService } from '@/services/analytics';
 import { useState, useMemo } from 'react';
 
 export function MetricsTestComponent() {
-  const { metrics, loading, error, stats, refreshData, exportData } = useWebVitals();
+  const { metrics, loading, error, getStats, refreshData, exportData } = useWebVitals();
   const [chartType, setChartType] = useState<'line' | 'bar' | 'doughnut'>('line');
   const [selectedMetric, setSelectedMetric] = useState<string>('all');
   const [timeRange, setTimeRange] = useState<'1h' | '24h' | '7d' | '30d'>('24h');
+
+  // Get stats based on selected timeRange
+  const stats = useMemo(() => {
+    return getStats(timeRange);
+  }, [getStats, timeRange]);
 
   // Get performance insights
   const performanceGrade = useMemo(() => {
@@ -21,6 +26,32 @@ export function MetricsTestComponent() {
       return acc;
     }, {} as Record<string, any>);
   }, [metrics, timeRange]);
+
+  // Get page visit data for charting if needed
+  const pageVisitData = useMemo(() => {
+    if (selectedMetric === 'page-visits') {
+      return analyticsService.getPageVisitsOverTime(timeRange);
+    }
+    return [];
+  }, [selectedMetric, timeRange]);
+
+  // Combined metrics data for chart
+  const chartMetrics = useMemo(() => {
+    if (selectedMetric === 'page-visits') {
+      // Convert page visit data to metric-like format
+      return pageVisitData.map(pv => ({
+        id: `pv-${pv.timestamp}`,
+        name: 'Page Visits' as any,
+        value: pv.value,
+        rating: 'good' as const,
+        delta: 0,
+        timestamp: pv.timestamp,
+        url: window.location.href,
+        navigationType: 'navigate' as const,
+      }));
+    }
+    return metrics;
+  }, [selectedMetric, pageVisitData, metrics]);
 
   if (loading) {
     return <div className="p-4 text-gray-600">Loading Web Vitals data...</div>;
@@ -54,10 +85,27 @@ export function MetricsTestComponent() {
 
   return (
     <div className="p-6 max-w-4xl mx-auto">
-      <h2 className="text-2xl font-bold mb-6">Web Vitals Test Dashboard</h2>
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
+        <h2 className="text-2xl font-bold">Web Vitals Test Dashboard</h2>
+        
+        {/* Global Time Range Selector */}
+        <div className="flex items-center gap-2">
+          <span className="text-sm text-gray-500 font-medium">Time Range:</span>
+          <select
+            value={timeRange}
+            onChange={(e) => setTimeRange(e.target.value as any)}
+            className="px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-white font-medium"
+          >
+            <option value="1h">Last Hour</option>
+            <option value="24h">Last 24 Hours</option>
+            <option value="7d">Last 7 Days</option>
+            <option value="30d">Last 30 Days</option>
+          </select>
+        </div>
+      </div>
       
       {/* Stats Summary */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
         <div className="bg-white dark:bg-gray-800 p-4 rounded-lg shadow">
           <h3 className="text-sm font-medium text-gray-500">Unique Visitors</h3>
           <p className="text-2xl font-bold text-gray-900 dark:text-white">{stats.uniqueVisitors}</p>
@@ -65,16 +113,6 @@ export function MetricsTestComponent() {
         <div className="bg-white dark:bg-gray-800 p-4 rounded-lg shadow">
           <h3 className="text-sm font-medium text-gray-500">Total Page Visits</h3>
           <p className="text-2xl font-bold text-gray-900 dark:text-white">{stats.totalPageVisits}</p>
-        </div>
-        <div className="bg-white dark:bg-gray-800 p-4 rounded-lg shadow">
-          <h3 className="text-sm font-medium text-gray-500">Last Week Metrics</h3>
-          <p className="text-2xl font-bold text-gray-900 dark:text-white">{stats.lastWeek}</p>
-        </div>
-        <div className="bg-white dark:bg-gray-800 p-4 rounded-lg shadow">
-          <h3 className="text-sm font-medium text-gray-500">Session ID</h3>
-          <p className="text-xs font-mono text-gray-600 dark:text-gray-400 truncate">
-            {stats.sessionId}
-          </p>
         </div>
       </div>
 
@@ -238,6 +276,7 @@ export function MetricsTestComponent() {
                   className="px-3 py-1 text-sm border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
                 >
                   <option value="all">All Core Web Vitals</option>
+                  <option value="page-visits">Page Visits</option>
                   {Object.entries(METRIC_INFO).map(([key, info]) => (
                     <option key={key} value={key}>
                       {key} - {info.name}
@@ -245,34 +284,24 @@ export function MetricsTestComponent() {
                   ))}
                 </select>
               )}
-
-              {/* Time Range */}
-              <select
-                value={timeRange}
-                onChange={(e) => setTimeRange(e.target.value as any)}
-                className="px-3 py-1 text-sm border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
-              >
-                <option value="1h">Last Hour</option>
-                <option value="24h">Last 24 Hours</option>
-                <option value="7d">Last 7 Days</option>
-                <option value="30d">Last 30 Days</option>
-              </select>
             </div>
           </div>
         </div>
         
         <div className="p-6">
           <MetricsChart
-            metrics={metrics}
+            metrics={chartMetrics}
             type={chartType}
-            metricName={selectedMetric === 'all' ? undefined : selectedMetric as any}
+            metricName={selectedMetric === 'all' || selectedMetric === 'page-visits' ? undefined : selectedMetric as any}
             timeRange={timeRange}
             height={400}
             title={chartType === 'doughnut' 
               ? 'Performance Rating Distribution' 
               : selectedMetric === 'all' 
                 ? 'All Web Vitals Over Time'
-                : `${selectedMetric} Over Time`
+                : selectedMetric === 'page-visits'
+                  ? 'Page Visits Over Time'
+                  : `${selectedMetric} Over Time`
             }
           />
         </div>
