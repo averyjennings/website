@@ -24,7 +24,8 @@
       "Bash(git commit:*)",
       "Bash(git push:*)",
       "mcp__playwright__browser_tab_select",
-      "mcp__playwright__browser_console_messages"
+      "mcp__playwright__browser_console_messages",
+      "Bash(npm install:*)"
     ],
     "deny": []
   }

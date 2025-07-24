@@ -1,4 +1,5 @@
 import { Metric } from 'web-vitals';
+import { track } from '@vercel/analytics';
 import { WebVitalMetric, PerformanceData, WebVitalThresholds } from '@/types/performance';
 
 // Web Vitals thresholds based on Google's recommendations
@@ -168,6 +169,20 @@ class AnalyticsService {
       });
     }
 
+    // Send to Vercel Analytics for long-term storage
+    try {
+      track(`web-vital-${metric.name.toLowerCase()}`, {
+        value: metric.value.toString(),
+        rating: metric.rating,
+        delta: metric.delta?.toString() || '0',
+        url: metric.url,
+        navigationType: metric.navigationType,
+        timestamp: new Date(metric.timestamp).toISOString(),
+      });
+    } catch (error) {
+      console.warn('Failed to send metric to Vercel Analytics:', error);
+    }
+
     // Send to console for development
     if (process.env.NODE_ENV === 'development') {
       console.log(`Web Vital - ${metric.name}:`, {
@@ -175,6 +190,7 @@ class AnalyticsService {
         rating: metric.rating,
         delta: metric.delta,
         url: metric.url,
+        vercelTracked: true,
       });
     }
   }
