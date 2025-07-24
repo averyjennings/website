@@ -123,11 +123,13 @@ class SupabaseAnalyticsService {
   private getOrCreateUserId(): string {
     const stored = localStorage.getItem('analytics-user-id');
     if (stored) {
+      console.log('🆔 Using existing user ID:', stored);
       return stored;
     }
     
     const userId = `user_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
     localStorage.setItem('analytics-user-id', userId);
+    console.log('🆔 Created new user ID:', userId);
     return userId;
   }
 
@@ -363,18 +365,30 @@ class SupabaseAnalyticsService {
       const uniqueVisitors = uniqueUserIds.size;
       const totalPageVisits = (visitsData || []).length;
       
-      // Debug logging for production issues
+      // Enhanced debug logging for production issues
       if (process.env.NODE_ENV === 'development' || timeRange === '1h') {
         console.log(`📊 Analytics Debug - ${timeRange}:`, {
           totalRecords: visitsData?.length || 0,
           uniqueUserIds: Array.from(uniqueUserIds),
           uniqueCount: uniqueVisitors,
           timeRange: `${config.startTime} to ${config.endTime}`,
+          rawUserIds: (visitsData || []).map(v => v.user_id),
+          nullUserIds: (visitsData || []).filter(v => !v.user_id).length,
           sampleRecords: (visitsData || []).slice(0, 3).map(v => ({
             user_id: v.user_id,
             timestamp: v.timestamp,
             url: v.url
           }))
+        });
+      }
+
+      // Additional error logging for debugging
+      if (timeRange === '1h' && uniqueVisitors === 0 && totalPageVisits > 0) {
+        console.error(`🚨 Bug detected: ${totalPageVisits} page visits but 0 unique visitors for 1h range`, {
+          config,
+          sampleVisits: (visitsData || []).slice(0, 5),
+          allUserIds: (visitsData || []).map(v => v.user_id),
+          currentTime: new Date().toISOString()
         });
       }
 
