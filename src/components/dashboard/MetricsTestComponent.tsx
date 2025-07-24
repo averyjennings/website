@@ -27,10 +27,12 @@ export function MetricsTestComponent() {
     }, {} as Record<string, any>);
   }, [metrics, timeRange]);
 
-  // Get page visit data for charting if needed
-  const pageVisitData = useMemo(() => {
+  // Get visitor data for charting if needed
+  const visitorData = useMemo(() => {
     if (selectedMetric === 'page-visits') {
       return analyticsService.getPageVisitsOverTime(timeRange);
+    } else if (selectedMetric === 'unique-visitors') {
+      return analyticsService.getUniqueVisitorsOverTime(timeRange);
     }
     return [];
   }, [selectedMetric, timeRange]);
@@ -39,7 +41,7 @@ export function MetricsTestComponent() {
   const chartMetrics = useMemo(() => {
     if (selectedMetric === 'page-visits') {
       // Convert page visit data to metric-like format
-      return pageVisitData.map(pv => ({
+      return visitorData.map(pv => ({
         id: `pv-${pv.timestamp}`,
         name: 'Page Visits' as any,
         value: pv.value,
@@ -49,9 +51,24 @@ export function MetricsTestComponent() {
         url: window.location.href,
         navigationType: 'navigate' as const,
       }));
+    } else if (selectedMetric === 'unique-visitors') {
+      // Convert unique visitor data to metric-like format
+      return visitorData.map(uv => ({
+        id: `uv-${uv.timestamp}`,
+        name: 'Unique Visitors' as any,
+        value: uv.value,
+        rating: 'good' as const,
+        delta: 0,
+        timestamp: uv.timestamp,
+        url: window.location.href,
+        navigationType: 'navigate' as const,
+      }));
+    } else if (selectedMetric === 'all') {
+      // Get all metrics including page visits
+      return analyticsService.getAllMetricsWithVisitorData(timeRange);
     }
     return metrics;
-  }, [selectedMetric, pageVisitData, metrics]);
+  }, [selectedMetric, visitorData, metrics, timeRange]);
 
   if (loading) {
     return <div className="p-4 text-gray-600">Loading Web Vitals data...</div>;
@@ -275,8 +292,9 @@ export function MetricsTestComponent() {
                   onChange={(e) => setSelectedMetric(e.target.value)}
                   className="px-3 py-1 text-sm border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
                 >
-                  <option value="all">All Core Web Vitals</option>
+                  <option value="all">All Metrics + Page Visits</option>
                   <option value="page-visits">Page Visits</option>
+                  <option value="unique-visitors">Unique Visitors</option>
                   {Object.entries(METRIC_INFO).map(([key, info]) => (
                     <option key={key} value={key}>
                       {key} - {info.name}
@@ -292,16 +310,18 @@ export function MetricsTestComponent() {
           <MetricsChart
             metrics={chartMetrics}
             type={chartType}
-            metricName={selectedMetric === 'all' || selectedMetric === 'page-visits' ? undefined : selectedMetric as any}
+            metricName={selectedMetric === 'all' || selectedMetric === 'page-visits' || selectedMetric === 'unique-visitors' ? undefined : selectedMetric as any}
             timeRange={timeRange}
             height={400}
             title={chartType === 'doughnut' 
               ? 'Performance Rating Distribution' 
               : selectedMetric === 'all' 
-                ? 'All Web Vitals Over Time'
+                ? 'All Metrics + Page Visits Over Time'
                 : selectedMetric === 'page-visits'
                   ? 'Page Visits Over Time'
-                  : `${selectedMetric} Over Time`
+                  : selectedMetric === 'unique-visitors'
+                    ? 'Unique Visitors Over Time'
+                    : `${selectedMetric} Over Time`
             }
           />
         </div>

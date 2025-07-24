@@ -359,6 +359,38 @@ class AnalyticsService {
     }
   }
 
+  // Get combined data for "All" chart view
+  public getAllMetricsWithVisitorData(timeRange: '1h' | '24h' | '7d' | '30d' = '24h') {
+    const webVitalsData = this.getStoredData();
+    const pageVisitData = this.getPageVisitsOverTime(timeRange);
+    
+    // Filter web vitals by time range
+    const now = Date.now();
+    const ranges = {
+      '1h': 60 * 60 * 1000,
+      '24h': 24 * 60 * 60 * 1000,
+      '7d': 7 * 24 * 60 * 60 * 1000,
+      '30d': 30 * 24 * 60 * 60 * 1000,
+    };
+    
+    const cutoff = now - ranges[timeRange];
+    const filteredWebVitals = webVitalsData.metrics.filter(m => m.timestamp >= cutoff);
+    
+    // Convert page visit data to metric format
+    const pageVisitMetrics = pageVisitData.map(pv => ({
+      id: `pv-${pv.timestamp}`,
+      name: 'Page Visits' as any,
+      value: pv.value,
+      rating: 'good' as const,
+      delta: 0,
+      timestamp: pv.timestamp,
+      url: window.location.href,
+      navigationType: 'navigate' as const,
+    }));
+    
+    return [...filteredWebVitals, ...pageVisitMetrics];
+  }
+
   // Get aggregated statistics for each metric type
   public getMetricStats(metricName: WebVitalMetric['name'], timeRange: '1h' | '24h' | '7d' | '30d' = '24h') {
     const data = this.getStoredData();
@@ -474,6 +506,51 @@ class AnalyticsService {
         .sort((a, b) => a.timestamp - b.timestamp);
     } catch (error) {
       console.warn('Failed to get page visits over time:', error);
+      return [];
+    }
+  }
+
+  // Get unique visitors data over time for charting
+  public getUniqueVisitorsOverTime(timeRange: '1h' | '24h' | '7d' | '30d' = '24h') {
+    try {
+      const visitors = JSON.parse(localStorage.getItem(this.visitorStorageKey) || '[]');
+      
+      const now = Date.now();
+      const ranges = {
+        '1h': 60 * 60 * 1000,
+        '24h': 24 * 60 * 60 * 1000,
+        '7d': 7 * 24 * 60 * 60 * 1000,
+        '30d': 30 * 24 * 60 * 60 * 1000,
+      };
+      
+      const cutoff = now - ranges[timeRange];
+      const filteredVisitors = visitors.filter((v: any) => v.firstVisit >= cutoff);
+      
+      // Group visitors by time intervals based on their first visit
+      const intervalMs = timeRange === '1h' ? 5 * 60 * 1000 : // 5-minute intervals
+                        timeRange === '24h' ? 60 * 60 * 1000 : // 1-hour intervals  
+                        24 * 60 * 60 * 1000; // 1-day intervals
+      
+      const groupedVisitors: { [key: number]: Set<string> } = {};
+      
+      filteredVisitors.forEach((visitor: any) => {
+        const intervalStart = Math.floor(visitor.firstVisit / intervalMs) * intervalMs;
+        if (!groupedVisitors[intervalStart]) {
+          groupedVisitors[intervalStart] = new Set();
+        }
+        groupedVisitors[intervalStart].add(visitor.userId);
+      });
+      
+      // Convert to array format for charting
+      return Object.entries(groupedVisitors)
+        .map(([timestamp, userSet]) => ({
+          timestamp: parseInt(timestamp),
+          value: userSet.size,
+          name: 'Unique Visitors' as const,
+        }))
+        .sort((a, b) => a.timestamp - b.timestamp);
+    } catch (error) {
+      console.warn('Failed to get unique visitors over time:', error);
       return [];
     }
   }

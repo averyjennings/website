@@ -32,7 +32,7 @@ ChartJS.register(
 interface MetricsChartProps {
   metrics: WebVitalMetric[];
   type: 'line' | 'bar' | 'doughnut';
-  metricName?: WebVitalMetric['name'] | 'Page Visits';
+  metricName?: WebVitalMetric['name'] | 'Page Visits' | 'Unique Visitors';
   title?: string;
   timeRange?: '1h' | '24h' | '7d' | '30d';
   showLegend?: boolean;
@@ -46,6 +46,7 @@ const METRIC_COLORS: Record<string, string> = {
   TTFB: '#8B5CF6', // purple
   INP: '#EF4444', // red
   'Page Visits': '#EC4899', // pink
+  'Unique Visitors': '#06B6D4', // cyan
 };
 
 const RATING_COLORS = {
@@ -197,13 +198,15 @@ export function MetricsChart({
               }
 
               let unit = '';
-              if (metric !== 'CLS' && metric !== 'Page Visits') {
+              if (metric !== 'CLS' && metric !== 'Page Visits' && metric !== 'Unique Visitors') {
                 unit = ' ms';
               } else if (metric === 'Page Visits') {
                 unit = ' visits';
+              } else if (metric === 'Unique Visitors') {
+                unit = ' visitors';
               }
 
-              return `${metric}: ${typeof value === 'number' ? value.toFixed(metric === 'CLS' ? 3 : metric === 'Page Visits' ? 0 : 0) : value}${unit}`;
+              return `${metric}: ${typeof value === 'number' ? value.toFixed(metric === 'CLS' ? 3 : (metric === 'Page Visits' || metric === 'Unique Visitors') ? 0 : 0) : value}${unit}`;
             },
           },
         },
@@ -230,6 +233,7 @@ export function MetricsChart({
             display: true,
             text: metricName === 'CLS' ? 'Score' : 
                   (metricName as string) === 'Page Visits' ? 'Visits' : 
+                  (metricName as string) === 'Unique Visitors' ? 'Visitors' :
                   'Time (ms)',
           },
           beginAtZero: true,
