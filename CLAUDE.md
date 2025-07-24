@@ -14,9 +14,76 @@ Claude Code is responsible for managing all git interactions for this project, i
 - Pushing changes to the remote repository
 - Handling merge conflicts if they arise
 
+**Important Git Workflow**:
+- Always commit work in logical chunks as features are completed
+- Separate different features into different commits (e.g. performance dashboard vs GitHub integration)
+- Every commit must be a working build - always run lint and build before committing
+- Don't wait until the end of a large task - commit frequently with meaningful messages
+- Run `npm run lint` and `npm run build` before every commit to ensure code quality
+- Test functionality before committing to ensure nothing is broken
+
 ## Visual Feedback & Screenshots
 
 When the user mentions "check the screenshots" or asks you to look at uploaded screenshots, check the `website/screenshots/` directory. This directory contains visual feedback of the UI for validation purposes. Use the Read tool to view PNG/JPG files in this directory to understand the current visual state of the website and identify any UI issues that need fixing.
+
+## Browser Testing with Playwright MCP
+
+Playwright MCP is configured and available for browser automation testing. Use it extensively during development to test and iterate on the website.
+
+### Key Capabilities
+- **Live Website Testing**: Navigate to `http://localhost:5173` during development
+- **Element Interaction**: Click buttons, fill forms, test navigation
+- **Visual Validation**: Take screenshots to verify UI changes
+- **Accessibility Testing**: Use `browser_snapshot` for structured page analysis
+- **Performance Monitoring**: Test page loads and user interactions
+- **Responsive Testing**: Resize browser to test different viewports
+
+### Common Usage Patterns
+
+```javascript
+// Start development server first
+npm run dev
+
+// Then use Playwright MCP tools:
+// 1. Navigate to local development site
+mcp__playwright__browser_navigate("http://localhost:5173")
+
+// 2. Take accessibility snapshot for element analysis
+mcp__playwright__browser_snapshot()
+
+// 3. Interact with components
+mcp__playwright__browser_click(element, ref)
+mcp__playwright__browser_type(element, ref, text)
+
+// 4. Capture visual state
+mcp__playwright__browser_take_screenshot()
+
+// 5. Test responsiveness
+mcp__playwright__browser_resize(width, height)
+```
+
+### Testing Workflow
+1. **Before Implementation**: Take baseline screenshots of existing UI
+2. **During Development**: Continuously test component changes
+3. **After Changes**: Verify functionality and visual appearance
+4. **Cross-Device Testing**: Test different viewport sizes for responsiveness
+5. **Component Testing**: Test individual component interactions
+6. **User Journey Testing**: Test complete user workflows
+
+### Best Practices
+- Always use `browser_snapshot()` before taking actions for better element targeting
+- Take screenshots at key development milestones for visual comparison
+- Test both desktop and mobile viewports using `browser_resize()`
+- Verify form submissions, button clicks, and navigation work correctly
+- Test error states and loading states
+- Validate accessibility features and keyboard navigation
+
+### Integration with Development Process
+- Use after making component changes to verify they work correctly
+- Test before committing code changes
+- Validate responsive behavior across different screen sizes
+- Ensure interactive elements (buttons, forms, links) function properly
+- Test the Performance Dashboard charts and GitHub Integration features thoroughly
 
 ## Development Commands
 
