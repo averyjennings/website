@@ -2,15 +2,11 @@ import { Metric } from 'web-vitals';
 import { track } from '@vercel/analytics';
 import { supabase, testSupabaseConnection } from '@/lib/supabase';
 import { 
-  SupabaseVisitor, 
-  SupabasePageVisit, 
-  SupabaseWebVital,
   ChartDataPoint,
   VisitorStats,
   TimeRangeConfig,
   CombinedMetric,
-  AnalyticsServiceConfig,
-  SupabaseError
+  AnalyticsServiceConfig
 } from '@/types/supabase-analytics';
 import { WebVitalMetric, PerformanceData, WebVitalThresholds } from '@/types/performance';
 import { METRIC_INFO } from '@/services/analytics';
@@ -24,49 +20,6 @@ export const WEB_VITAL_THRESHOLDS: WebVitalThresholds = {
   INP: { good: 200, needsImprovement: 500 },
 };
 
-// Metric info (unchanged from original)
-export const METRIC_INFO = {
-  CLS: {
-    name: 'Cumulative Layout Shift',
-    description: 'Measures visual stability - how much content shifts during loading',
-    unit: 'score',
-    goodRange: '< 0.1',
-    impact: 'User Experience',
-    context: 'Lower is better. Indicates how stable the page layout is.'
-  },
-  FCP: {
-    name: 'First Contentful Paint', 
-    description: 'Time until first text/image appears on screen',
-    unit: 'milliseconds',
-    goodRange: '< 1.8s',
-    impact: 'Perceived Loading Speed',
-    context: 'How quickly users see something meaningful on the page.'
-  },
-  LCP: {
-    name: 'Largest Contentful Paint',
-    description: 'Time until main content finishes loading',
-    unit: 'milliseconds', 
-    goodRange: '< 2.5s',
-    impact: 'Loading Performance',
-    context: 'When the main content area becomes fully visible.'
-  },
-  TTFB: {
-    name: 'Time to First Byte',
-    description: 'Server response time for initial request',
-    unit: 'milliseconds',
-    goodRange: '< 800ms', 
-    impact: 'Server Performance',
-    context: 'How quickly the server starts sending data.'
-  },
-  INP: {
-    name: 'Interaction to Next Paint',
-    description: 'Responsiveness to user interactions',
-    unit: 'milliseconds',
-    goodRange: '< 200ms',
-    impact: 'Interactivity',
-    context: 'How quickly the page responds to clicks/taps.'
-  }
-} as const;
 
 class SupabaseAnalyticsService {
   private static instance: SupabaseAnalyticsService;
@@ -77,6 +30,7 @@ class SupabaseAnalyticsService {
   private initializationPromise: Promise<void> | null = null;
 
   private constructor() {
+    console.log('🏗️ SupabaseAnalyticsService constructor called');
     this.sessionId = this.generateSessionId();
     this.userId = this.getOrCreateUserId();
     this.config = {
@@ -86,13 +40,18 @@ class SupabaseAnalyticsService {
       fallbackToLocalStorage: true
     };
     
+    console.log('🆔 Service initialized with user_id:', this.userId, 'session_id:', this.sessionId);
+    
     // Start initialization but don't await it in constructor
     this.initializationPromise = this.initializeService();
   }
 
   public static getInstance(): SupabaseAnalyticsService {
     if (!SupabaseAnalyticsService.instance) {
+      console.log('🔄 Creating new SupabaseAnalyticsService singleton instance');
       SupabaseAnalyticsService.instance = new SupabaseAnalyticsService();
+    } else {
+      console.log('♻️ Returning existing SupabaseAnalyticsService singleton instance');
     }
     return SupabaseAnalyticsService.instance;
   }
@@ -594,6 +553,10 @@ class SupabaseAnalyticsService {
     }
   }
 
+  private get storageKey(): string {
+    return 'web-vitals-metrics';
+  }
+
   // Get stored data from localStorage
   public getStoredData(): PerformanceData & { pageVisits?: any[]; visitors?: any[] } {
     try {
@@ -622,6 +585,19 @@ class SupabaseAnalyticsService {
       pageVisits: [],
       visitors: [],
     };
+  }
+
+  // Clear stored data
+  public clearStoredData(): void {
+    localStorage.removeItem(this.storageKey);
+    localStorage.removeItem('analytics-page-visits');
+    localStorage.removeItem('analytics-visitors');
+  }
+
+  // Get metrics by type
+  public getMetricsByType(metricName: WebVitalMetric['name']): WebVitalMetric[] {
+    const data = this.getStoredData();
+    return data.metrics.filter(metric => metric.name === metricName);
   }
 
   // Get performance scores and grades
@@ -692,8 +668,10 @@ class SupabaseAnalyticsService {
   } {
     const data = this.getStoredData();
     const config = this.getTimeRangeConfig(timeRange);
+    const startTime = new Date(config.startTime).getTime();
+    const endTime = new Date(config.endTime).getTime();
     const metricData = data.metrics
-      .filter(m => m.name === metricName && m.timestamp >= config.startTime && m.timestamp <= config.endTime)
+      .filter(m => m.name === metricName && m.timestamp >= startTime && m.timestamp <= endTime)
       .sort((a, b) => a.timestamp - b.timestamp);
     
     if (metricData.length === 0) {
@@ -747,7 +725,8 @@ class SupabaseAnalyticsService {
 
     return pageVisits.map(pv => ({
       timestamp: pv.timestamp,
-      value: 1
+      value: 1,
+      name: 'Page Visits' as const
     }));
   }
 
@@ -762,7 +741,7 @@ class SupabaseAnalyticsService {
 
     const uniqueVisitorsByInterval = new Map<string, Set<string>>();
     visitors.forEach(v => {
-      const interval = Math.floor(v.timestamp / config.interval) * config.interval;
+      const interval = Math.floor(v.timestamp / config.intervalMs) * config.intervalMs;
       if (!uniqueVisitorsByInterval.has(interval.toString())) {
         uniqueVisitorsByInterval.set(interval.toString(), new Set());
       }
@@ -771,16 +750,19 @@ class SupabaseAnalyticsService {
 
     return Array.from(uniqueVisitorsByInterval.entries()).map(([interval, userIds]) => ({
       timestamp: parseInt(interval),
-      value: userIds.size
+      value: userIds.size,
+      name: 'Unique Visitors' as const
     }));
   }
 
   public getAllMetricsWithVisitorDataSync(timeRange: '1h' | '24h' | '7d' | '30d' = '24h'): CombinedMetric[] {
     const data = this.getStoredData();
     const config = this.getTimeRangeConfig(timeRange);
+    const startTime = new Date(config.startTime).getTime();
+    const endTime = new Date(config.endTime).getTime();
     
     const metrics = data.metrics
-      .filter(m => m.timestamp >= config.startTime && m.timestamp <= config.endTime)
+      .filter(m => m.timestamp >= startTime && m.timestamp <= endTime)
       .map(m => ({ ...m, type: 'metric' as const }));
     
     const pageVisitData = this.getPageVisitsOverTimeSync(timeRange);
@@ -837,7 +819,7 @@ class SupabaseAnalyticsService {
   }
 
   // Fallback methods for localStorage compatibility
-  private fallbackToLocalStorage(method: string, ...args: any[]): any {
+  private fallbackToLocalStorage(method: string, ..._args: any[]): any {
     if (!this.config.fallbackToLocalStorage) {
       console.warn(`Supabase unavailable and fallback disabled for ${method}`);
       return this.getEmptyResponse(method);
@@ -937,7 +919,10 @@ export const supabaseAnalyticsService = SupabaseAnalyticsService.getInstance();
 // Export for direct access when needed
 export const { getVisitorStats } = supabaseAnalyticsService;
 
-// Global gtag type declaration
+// Global declarations
 declare global {
   function gtag(...args: any[]): void;
+  interface Window {
+    supabaseAnalyticsService: SupabaseAnalyticsService;
+  }
 }

@@ -82,7 +82,7 @@ export interface CombinedMetric {
   delta: number;
   timestamp: number;
   url: string;
-  navigationType: 'navigate' | 'reload' | 'back-forward' | 'prerender';
+  navigationType: 'navigate' | 'reload' | 'back-forward' | 'back-forward-cache' | 'prerender' | 'restore';
 }
 
 // Error handling types

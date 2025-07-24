@@ -14,6 +14,7 @@ import {
 } from 'chart.js';
 import { Line, Bar, Doughnut } from 'react-chartjs-2';
 import { WebVitalMetric } from '@/types/performance';
+import { CombinedMetric } from '@/types/supabase-analytics';
 import { format } from 'date-fns';
 
 ChartJS.register(
@@ -30,7 +31,7 @@ ChartJS.register(
 );
 
 interface MetricsChartProps {
-  metrics: WebVitalMetric[];
+  metrics: WebVitalMetric[] | CombinedMetric[];
   type: 'line' | 'bar' | 'doughnut';
   metricName?: WebVitalMetric['name'] | 'Page Visits' | 'Unique Visitors';
   title?: string;

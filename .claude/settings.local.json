@@ -27,7 +27,13 @@
       "mcp__playwright__browser_console_messages",
       "Bash(npm install:*)",
       "mcp__playwright__browser_wait_for",
-      "mcp__playwright__browser_tab_new"
+      "mcp__playwright__browser_tab_new",
+      "Bash(gh secret set:*)",
+      "Bash(gh secret:*)",
+      "Bash(pkill:*)",
+      "Bash(true)",
+      "mcp__playwright__browser_close",
+      "Bash(rm:*)"
     ],
     "deny": []
   }

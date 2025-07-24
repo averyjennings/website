@@ -231,3 +231,7 @@ The project is designed to be deployed on Vercel with:
 - ✅ Environment variables configured
 - ⏳ Core components need implementation
 - ⏳ Priority features pending
+
+## MCP Tool Verification
+
+- You verify websites with your mcp tool

@@ -39,7 +39,7 @@ jobs:
           const supabase = createClient(
             process.env.SUPABASE_URL, 
             process.env.SUPABASE_ANON_KEY,
-            { db: { schema: 'analytics' } }
+            { db: { schema: 'public' } }
           );
           
           async function keepAlive() {

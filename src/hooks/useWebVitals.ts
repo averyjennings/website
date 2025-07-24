@@ -1,6 +1,6 @@
 import { useEffect, useState, useCallback } from 'react';
 import { onCLS, onFCP, onLCP, onTTFB, onINP, Metric } from 'web-vitals';
-import { analyticsService } from '@/services/analytics';
+import { supabaseAnalyticsService as analyticsService } from '@/services/supabase-analytics';
 import { WebVitalMetric, PerformanceData, DashboardFilters } from '@/types/performance';
 
 export interface UseWebVitalsReturn {
@@ -141,8 +141,17 @@ export function useWebVitals(): UseWebVitalsReturn {
     return () => window.removeEventListener('storage', handleStorageChange);
   }, [refreshData]);
 
+  const [, setStats] = useState(() => analyticsService.getPerformanceStats('24h'));
+  
   const getStats = useCallback((timeRange: '1h' | '24h' | '7d' | '30d' = '24h') => {
-    return analyticsService.getPerformanceStats(timeRange);
+    const currentStats = analyticsService.getPerformanceStats(timeRange);
+    
+    // Also fetch async stats and update when ready
+    analyticsService.getVisitorStats(timeRange).then(newStats => {
+      setStats(newStats);
+    });
+    
+    return currentStats;
   }, []);
 
   return {
@@ -186,8 +195,8 @@ export function useRealtimeMetrics() {
     
     // Override the recordMetric method to capture latest metrics
     const originalRecordMetric = analyticsService.recordMetric.bind(analyticsService);
-    analyticsService.recordMetric = (metric) => {
-      originalRecordMetric(metric);
+    analyticsService.recordMetric = async (metric) => {
+      await originalRecordMetric(metric);
       setLatestMetric({
         id: metric.id,
         name: metric.name as WebVitalMetric['name'],

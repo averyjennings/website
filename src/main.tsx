@@ -5,9 +5,14 @@ import { Analytics } from '@vercel/analytics/react'
 import App from './App.tsx'
 import './index.css'
 import { initSmoothScrolling } from './utils/smoothScroll.ts'
+import { supabaseAnalyticsService } from '@/services/supabase-analytics'
 
 // Initialize smooth scrolling
 initSmoothScrolling()
+
+// Initialize analytics service early and make it globally accessible
+console.log('🚀 Initializing analytics service in main.tsx...')
+window.supabaseAnalyticsService = supabaseAnalyticsService
 
 // Create a client for TanStack Query
 const queryClient = new QueryClient({
