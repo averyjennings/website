@@ -105,9 +105,17 @@ export function HeatmapOverlay({
       }
       
       setDimensions({ width, height });
+      console.log('🗺️ Heatmap overlay dimensions updated:', { width, height });
     };
 
-    updateDimensions();
+    // Add a small delay to ensure document is fully loaded
+    const initDimensions = () => {
+      updateDimensions();
+      // Also update after a short delay to catch any dynamic content
+      setTimeout(updateDimensions, 1000);
+    };
+
+    initDimensions();
     window.addEventListener('resize', updateDimensions);
     
     return () => window.removeEventListener('resize', updateDimensions);
@@ -178,7 +186,7 @@ export function HeatmapOverlay({
   return (
     <div
       ref={containerRef}
-      className={`absolute top-0 left-0 pointer-events-none z-50 ${className}`}
+      className={`absolute top-0 left-0 pointer-events-none z-[9999] ${className}`}
       style={{ 
         width: dimensions.width || '100%',
         height: dimensions.height || '100vh',

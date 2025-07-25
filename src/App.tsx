@@ -62,9 +62,9 @@ function App() {
             <DynamicStructuredData sectionType="performance" />
           </section>
           <Contact />
-          {/* Heatmap Analytics System */}
-          <HeatmapToggle />
         </Layout>
+        {/* Heatmap Analytics System - Outside Layout for full-site coverage */}
+        <HeatmapToggle />
       </ThemeProvider>
     </SEOProvider>
   );
