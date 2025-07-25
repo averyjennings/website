@@ -3,6 +3,7 @@ export { ActivityFeed } from './ActivityFeed';
 export { ContributionGraph } from './ContributionGraph';
 export { RepoStats } from './RepoStats'; 
 export { LanguageChart } from './LanguageChart';
+export { GitHubStatus } from './GitHubStatus';
 
 // Re-export types for convenience
 export type {

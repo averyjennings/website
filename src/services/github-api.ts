@@ -88,10 +88,37 @@ class GitHubAPIService {
     }
     
     if (!this.token || this.token === 'your-github-token-here') {
-      console.warn('GitHub token not configured. API requests may be rate limited. Set VITE_GITHUB_TOKEN in your .env.local file');
+      console.warn('⚠️ GitHub token not configured. API requests are rate limited to 60/hour.');
+      console.warn('To fix: Generate token at https://github.com/settings/tokens/new');
+      console.warn('Required scopes: public_repo, read:user, user:email');
     } else {
       console.log('✅ GitHub API authentication configured');
     }
+  }
+
+  // Helper method to check if authentication is properly configured
+  public isAuthenticated(): boolean {
+    return !!(this.token && this.token !== 'your-github-token-here');
+  }
+
+  // Get authentication status details
+  public getAuthStatus(): { 
+    isAuthenticated: boolean; 
+    hasUsername: boolean; 
+    rateLimitInfo: string;
+    setupInstructions?: string;
+  } {
+    const isAuthenticated = this.isAuthenticated();
+    const hasUsername = !!(this.username && this.username !== 'yourusername');
+    
+    return {
+      isAuthenticated,
+      hasUsername,
+      rateLimitInfo: isAuthenticated ? '5,000 requests/hour' : '60 requests/hour',
+      setupInstructions: !isAuthenticated ? 
+        'Generate token at https://github.com/settings/tokens/new with scopes: public_repo, read:user, user:email' : 
+        undefined
+    };
   }
 
   private async fetchWithCache<T>(endpoint: string, options?: RequestInit): Promise<T> {
@@ -120,7 +147,18 @@ class GitHubAPIService {
           throw new Error(`GitHub resource not found: ${endpoint}`);
         }
         if (response.status === 403) {
-          throw new Error('GitHub API rate limit exceeded');
+          const rateLimitRemaining = response.headers.get('X-RateLimit-Remaining');
+          const rateLimitReset = response.headers.get('X-RateLimit-Reset');
+          
+          if (rateLimitRemaining === '0') {
+            const resetTime = rateLimitReset ? new Date(parseInt(rateLimitReset) * 1000).toLocaleTimeString() : 'unknown';
+            throw new Error(`GitHub API rate limit exceeded. ${this.isAuthenticated() ? 'Authenticated' : 'Unauthenticated'} limit reached. Resets at ${resetTime}. ${!this.isAuthenticated() ? 'Configure VITE_GITHUB_TOKEN to increase limits.' : ''}`);
+          } else {
+            throw new Error(`GitHub API access forbidden (403). ${!this.isAuthenticated() ? 'Authentication required - configure VITE_GITHUB_TOKEN.' : 'Check token permissions.'}`);
+          }
+        }
+        if (response.status === 401) {
+          throw new Error('GitHub API authentication failed. Check your VITE_GITHUB_TOKEN.');
         }
         throw new Error(`GitHub API error: ${response.status} ${response.statusText}`);
       }

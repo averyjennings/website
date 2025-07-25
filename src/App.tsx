@@ -6,7 +6,7 @@ import Contact from './components/sections/Contact';
 import { ThemeProvider } from './components/providers/ThemeProvider';
 import SEO from './components/SEO';
 import { MetricsTestComponent } from './components/dashboard/MetricsTestComponent';
-import { ActivityFeed, ContributionGraph, RepoStats, LanguageChart } from './components/github';
+import { ActivityFeed, ContributionGraph, RepoStats, LanguageChart, GitHubStatus } from './components/github';
 import { HeatmapToggle } from './components/heatmap/HeatmapToggle';
 
 function App() {
@@ -27,6 +27,8 @@ function App() {
                 Explore my coding journey through contributions and repositories
               </p>
             </div>
+            {/* GitHub API Status */}
+            <GitHubStatus className="mb-8" />
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
               <ActivityFeed maxItems={8} />
               <RepoStats showTopRepos={true} showLanguages={true} maxRepos={4} />
