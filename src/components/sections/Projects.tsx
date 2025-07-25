@@ -285,35 +285,62 @@ const Projects = () => {
           <div className="flex flex-col items-center gap-6 mb-8">
             {/* Basic Filter buttons */}
             <motion.div 
-              className="flex flex-wrap justify-center gap-2"
+              className="w-full max-w-4xl"
               initial={{ opacity: 0, y: 20 }}
               whileInView={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.2 }}
               viewport={{ once: true }}
             >
-              {categories.map((category) => (
-                <motion.button
-                  key={category.id}
-                  onClick={() => setFilter(category.id)}
-                  className={`px-4 py-2 rounded-full text-sm font-medium transition-all duration-200 ${
-                    filter === category.id
-                      ? 'bg-primary-600 text-white shadow-lg shadow-primary-600/25'
-                      : 'bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-600'
-                  }`}
-                  whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.95 }}
-                >
-                  {category.label}
-                  <span className="ml-1 text-xs opacity-70">
-                    ({category.count})
-                  </span>
-                </motion.button>
-              ))}
+              {/* Mobile-first scrollable filter buttons */}
+              <div className="sm:hidden overflow-x-auto pb-2 -mx-4 px-4">
+                <div className="flex gap-3 min-w-max">
+                  {categories.map((category) => (
+                    <motion.button
+                      key={category.id}
+                      onClick={() => setFilter(category.id)}
+                      className={`px-4 py-2.5 rounded-full text-sm font-medium transition-all duration-200 whitespace-nowrap touch-manipulation ${
+                        filter === category.id
+                          ? 'bg-primary-600 text-white shadow-lg shadow-primary-600/25'
+                          : 'bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-600'
+                      }`}
+                      whileHover={{ scale: 1.05 }}
+                      whileTap={{ scale: 0.95 }}
+                    >
+                      {category.label}
+                      <span className="ml-1 text-xs opacity-70">
+                        ({category.count})
+                      </span>
+                    </motion.button>
+                  ))}
+                </div>
+              </div>
+              
+              {/* Desktop filter buttons */}
+              <div className="hidden sm:flex flex-wrap justify-center gap-2">
+                {categories.map((category) => (
+                  <motion.button
+                    key={category.id}
+                    onClick={() => setFilter(category.id)}
+                    className={`px-4 py-2 rounded-full text-sm font-medium transition-all duration-200 ${
+                      filter === category.id
+                        ? 'bg-primary-600 text-white shadow-lg shadow-primary-600/25'
+                        : 'bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-600'
+                    }`}
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
+                  >
+                    {category.label}
+                    <span className="ml-1 text-xs opacity-70">
+                      ({category.count})
+                    </span>
+                  </motion.button>
+                ))}
+              </div>
             </motion.div>
             
             {/* Search Bar */}
             <motion.div
-              className="relative w-full max-w-md"
+              className="relative w-full max-w-lg px-4 sm:px-0"
               initial={{ opacity: 0, y: -10 }}
               whileInView={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.25 }}
@@ -325,9 +352,9 @@ const Projects = () => {
                   placeholder="Search projects by name, description, or technology..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-full pl-10 pr-10 py-3 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-xl text-sm text-gray-700 dark:text-gray-300 placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all duration-200"
+                  className="w-full pl-12 pr-12 py-3.5 sm:py-3 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-xl text-sm text-gray-700 dark:text-gray-300 placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all duration-200 touch-manipulation"
                 />
-                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
                   <svg className="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
                   </svg>
@@ -335,7 +362,7 @@ const Projects = () => {
                 {searchQuery && (
                   <motion.button
                     onClick={clearSearch}
-                    className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+                    className="absolute inset-y-0 right-0 pr-4 flex items-center text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 touch-manipulation"
                     whileHover={{ scale: 1.1 }}
                     whileTap={{ scale: 0.9 }}
                     initial={{ opacity: 0, scale: 0.8 }}
@@ -350,7 +377,7 @@ const Projects = () => {
               </div>
               {hasActiveSearch && (
                 <motion.div
-                  className="absolute -bottom-6 left-0 text-xs text-primary-600 dark:text-primary-400"
+                  className="absolute -bottom-6 left-4 sm:left-0 text-xs text-primary-600 dark:text-primary-400"
                   initial={{ opacity: 0, y: -5 }}
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, y: -5 }}
@@ -361,91 +388,188 @@ const Projects = () => {
             </motion.div>
             
             {/* Controls Row */}
-            <div className="flex flex-wrap items-center justify-center gap-4 mt-4">
-              {/* Sort dropdown */}
-              <motion.div
-                className="flex items-center gap-2"
-                initial={{ opacity: 0, x: -20 }}
-                whileInView={{ opacity: 1, x: 0 }}
-                transition={{ delay: 0.3 }}
-                viewport={{ once: true }}
-              >
-                <span className="text-sm text-gray-600 dark:text-gray-400">Sort:</span>
-                <select
-                  value={sortBy}
-                  onChange={(e) => setSortBy(e.target.value as 'updated' | 'stars' | 'name')}
-                  className="px-3 py-1 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg text-sm font-medium text-gray-700 dark:text-gray-300 focus:outline-none focus:ring-2 focus:ring-primary-500"
+            <div className="w-full px-4 sm:px-0">
+              {/* Mobile Controls - Stacked Layout */}
+              <div className="sm:hidden space-y-4">
+                {/* Top row: Sort and Advanced Filters */}
+                <div className="flex items-center justify-between gap-3">
+                  {/* Sort dropdown */}
+                  <motion.div
+                    className="flex items-center gap-2 flex-1"
+                    initial={{ opacity: 0, x: -20 }}
+                    whileInView={{ opacity: 1, x: 0 }}
+                    transition={{ delay: 0.3 }}
+                    viewport={{ once: true }}
+                  >
+                    <span className="text-sm text-gray-600 dark:text-gray-400 whitespace-nowrap">Sort:</span>
+                    <select
+                      value={sortBy}
+                      onChange={(e) => setSortBy(e.target.value as 'updated' | 'stars' | 'name')}
+                      className="flex-1 px-3 py-2 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg text-sm font-medium text-gray-700 dark:text-gray-300 focus:outline-none focus:ring-2 focus:ring-primary-500 touch-manipulation"
+                    >
+                      <option value="updated">Recently Updated</option>
+                      <option value="stars">Most Stars</option>
+                      <option value="name">Name</option>
+                    </select>
+                  </motion.div>
+                  
+                  {/* Advanced Filters Toggle */}
+                  <motion.button
+                    onClick={() => setShowAdvancedFilters(!showAdvancedFilters)}
+                    className={`flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-medium transition-all duration-200 touch-manipulation whitespace-nowrap ${
+                      showAdvancedFilters || hasActiveFilters
+                        ? 'bg-primary-100 dark:bg-primary-900/30 text-primary-700 dark:text-primary-300'
+                        : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-600'
+                    }`}
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
+                    initial={{ opacity: 0, x: 20 }}
+                    whileInView={{ opacity: 1, x: 0 }}
+                    transition={{ delay: 0.4 }}
+                    viewport={{ once: true }}
+                  >
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 100 4m0-4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 100 4m0-4v2m0-6V4" />
+                    </svg>
+                    <span className="hidden xs:inline">Advanced </span>Filters
+                    {hasActiveFilters && (
+                      <span className="ml-1 px-2 py-0.5 bg-primary-600 text-white text-xs rounded-full">
+                        {[languageFilter !== 'all', minStars > 0, minForks > 0, activityFilter !== 'all'].filter(Boolean).length}
+                      </span>
+                    )}
+                  </motion.button>
+                </div>
+                
+                {/* Bottom row: Actions and Results */}
+                <div className="flex flex-col sm:flex-row items-center justify-between gap-3">
+                  {/* Clear All Button */}
+                  {hasAnyActiveFilters && (
+                    <motion.button
+                      onClick={resetFilters}
+                      className="w-full sm:w-auto flex items-center justify-center gap-2 px-4 py-2.5 bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300 rounded-lg text-sm font-medium hover:bg-red-200 dark:hover:bg-red-900/50 transition-colors touch-manipulation"
+                      whileHover={{ scale: 1.05 }}
+                      whileTap={{ scale: 0.95 }}
+                      initial={{ opacity: 0, scale: 0.8 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      exit={{ opacity: 0, scale: 0.8 }}
+                    >
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                      </svg>
+                      Clear All Filters
+                    </motion.button>
+                  )}
+                  
+                  {/* Results count */}
+                  <motion.div 
+                    className="text-sm text-gray-500 dark:text-gray-400 flex items-center justify-center gap-2 text-center"
+                    initial={{ opacity: 0 }}
+                    whileInView={{ opacity: 1 }}
+                    transition={{ delay: 0.5 }}
+                    viewport={{ once: true }}
+                  >
+                    <span>Showing {filteredProjects.length} of {projects.length} projects</span>
+                    {(hasActiveSearch || hasActiveFilters) && (
+                      <motion.span 
+                        className="px-2 py-1 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 rounded-full text-xs font-medium"
+                        initial={{ scale: 0 }}
+                        animate={{ scale: 1 }}
+                        exit={{ scale: 0 }}
+                      >
+                        Filtered
+                      </motion.span>
+                    )}
+                  </motion.div>
+                </div>
+              </div>
+              
+              {/* Desktop Controls - Original Layout */}
+              <div className="hidden sm:flex flex-wrap items-center justify-center gap-4 mt-4">
+                {/* Sort dropdown */}
+                <motion.div
+                  className="flex items-center gap-2"
+                  initial={{ opacity: 0, x: -20 }}
+                  whileInView={{ opacity: 1, x: 0 }}
+                  transition={{ delay: 0.3 }}
+                  viewport={{ once: true }}
                 >
-                  <option value="updated">Recently Updated</option>
-                  <option value="stars">Most Stars</option>
-                  <option value="name">Name</option>
-                </select>
-              </motion.div>
-              
-              {/* Advanced Filters Toggle */}
-              <motion.button
-                onClick={() => setShowAdvancedFilters(!showAdvancedFilters)}
-                className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
-                  showAdvancedFilters || hasActiveFilters
-                    ? 'bg-primary-100 dark:bg-primary-900/30 text-primary-700 dark:text-primary-300'
-                    : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-600'
-                }`}
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-                initial={{ opacity: 0, x: 20 }}
-                whileInView={{ opacity: 1, x: 0 }}
-                transition={{ delay: 0.4 }}
-                viewport={{ once: true }}
-              >
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 100 4m0-4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 100 4m0-4v2m0-6V4" />
-                </svg>
-                Advanced Filters
-                {hasActiveFilters && (
-                  <span className="ml-1 px-2 py-0.5 bg-primary-600 text-white text-xs rounded-full">
-                    {[languageFilter !== 'all', minStars > 0, minForks > 0, activityFilter !== 'all'].filter(Boolean).length}
-                  </span>
-                )}
-              </motion.button>
-              
-              {/* Clear All Button */}
-              {hasAnyActiveFilters && (
+                  <span className="text-sm text-gray-600 dark:text-gray-400">Sort:</span>
+                  <select
+                    value={sortBy}
+                    onChange={(e) => setSortBy(e.target.value as 'updated' | 'stars' | 'name')}
+                    className="px-3 py-1 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg text-sm font-medium text-gray-700 dark:text-gray-300 focus:outline-none focus:ring-2 focus:ring-primary-500"
+                  >
+                    <option value="updated">Recently Updated</option>
+                    <option value="stars">Most Stars</option>
+                    <option value="name">Name</option>
+                  </select>
+                </motion.div>
+                
+                {/* Advanced Filters Toggle */}
                 <motion.button
-                  onClick={resetFilters}
-                  className="flex items-center gap-2 px-3 py-2 bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300 rounded-lg text-sm font-medium hover:bg-red-200 dark:hover:bg-red-900/50 transition-colors"
+                  onClick={() => setShowAdvancedFilters(!showAdvancedFilters)}
+                  className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
+                    showAdvancedFilters || hasActiveFilters
+                      ? 'bg-primary-100 dark:bg-primary-900/30 text-primary-700 dark:text-primary-300'
+                      : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-600'
+                  }`}
                   whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.95 }}
-                  initial={{ opacity: 0, scale: 0.8 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  exit={{ opacity: 0, scale: 0.8 }}
+                  initial={{ opacity: 0, x: 20 }}
+                  whileInView={{ opacity: 1, x: 0 }}
+                  transition={{ delay: 0.4 }}
+                  viewport={{ once: true }}
                 >
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 100 4m0-4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 100 4m0-4v2m0-6V4" />
                   </svg>
-                  Clear All
+                  Advanced Filters
+                  {hasActiveFilters && (
+                    <span className="ml-1 px-2 py-0.5 bg-primary-600 text-white text-xs rounded-full">
+                      {[languageFilter !== 'all', minStars > 0, minForks > 0, activityFilter !== 'all'].filter(Boolean).length}
+                    </span>
+                  )}
                 </motion.button>
-              )}
-              
-              {/* Results count */}
-              <motion.div 
-                className="text-sm text-gray-500 dark:text-gray-400 flex items-center gap-2"
-                initial={{ opacity: 0 }}
-                whileInView={{ opacity: 1 }}
-                transition={{ delay: 0.5 }}
-                viewport={{ once: true }}
-              >
-                <span>Showing {filteredProjects.length} of {projects.length} projects</span>
-                {(hasActiveSearch || hasActiveFilters) && (
-                  <motion.span 
-                    className="px-2 py-1 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 rounded-full text-xs font-medium"
-                    initial={{ scale: 0 }}
-                    animate={{ scale: 1 }}
-                    exit={{ scale: 0 }}
+                
+                {/* Clear All Button */}
+                {hasAnyActiveFilters && (
+                  <motion.button
+                    onClick={resetFilters}
+                    className="flex items-center gap-2 px-3 py-2 bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300 rounded-lg text-sm font-medium hover:bg-red-200 dark:hover:bg-red-900/50 transition-colors"
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
+                    initial={{ opacity: 0, scale: 0.8 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    exit={{ opacity: 0, scale: 0.8 }}
                   >
-                    Filtered
-                  </motion.span>
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                    </svg>
+                    Clear All
+                  </motion.button>
                 )}
-              </motion.div>
+                
+                {/* Results count */}
+                <motion.div 
+                  className="text-sm text-gray-500 dark:text-gray-400 flex items-center gap-2"
+                  initial={{ opacity: 0 }}
+                  whileInView={{ opacity: 1 }}
+                  transition={{ delay: 0.5 }}
+                  viewport={{ once: true }}
+                >
+                  <span>Showing {filteredProjects.length} of {projects.length} projects</span>
+                  {(hasActiveSearch || hasActiveFilters) && (
+                    <motion.span 
+                      className="px-2 py-1 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 rounded-full text-xs font-medium"
+                      initial={{ scale: 0 }}
+                      animate={{ scale: 1 }}
+                      exit={{ scale: 0 }}
+                    >
+                      Filtered
+                    </motion.span>
+                  )}
+                </motion.div>
+              </div>
             </div>
             
             {/* Advanced Filters Panel */}
@@ -456,19 +580,20 @@ const Projects = () => {
                 opacity: showAdvancedFilters ? 1 : 0,
               }}
               transition={{ duration: 0.3, ease: 'easeInOut' }}
-              className="w-full max-w-4xl overflow-hidden"
+              className="w-full max-w-5xl overflow-hidden px-4 sm:px-0"
             >
-              <div className="bg-gray-50 dark:bg-gray-800 rounded-xl p-6 space-y-4">
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+              <div className="bg-gray-50 dark:bg-gray-800 rounded-xl p-4 sm:p-6 space-y-6">
+                {/* Mobile-optimized filters grid */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
                   {/* Language Filter */}
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">
                       Language
                     </label>
                     <select
                       value={languageFilter}
                       onChange={(e) => setLanguageFilter(e.target.value)}
-                      className="w-full px-3 py-2 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg text-sm text-gray-700 dark:text-gray-300 focus:outline-none focus:ring-2 focus:ring-primary-500"
+                      className="w-full px-4 py-3 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg text-sm text-gray-700 dark:text-gray-300 focus:outline-none focus:ring-2 focus:ring-primary-500 touch-manipulation"
                     >
                       {languages.map(lang => (
                         <option key={lang.id} value={lang.id}>
@@ -480,45 +605,57 @@ const Projects = () => {
                   
                   {/* Minimum Stars */}
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                      Min Stars: {minStars}
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">
+                      Min Stars: <span className="font-bold text-primary-600 dark:text-primary-400">{minStars}</span>
                     </label>
-                    <input
-                      type="range"
-                      min="0"
-                      max="50"
-                      step="1"
-                      value={minStars}
-                      onChange={(e) => setMinStars(Number(e.target.value))}
-                      className="w-full h-2 bg-gray-200 dark:bg-gray-600 rounded-lg appearance-none cursor-pointer slider"
-                    />
+                    <div className="relative">
+                      <input
+                        type="range"
+                        min="0"
+                        max="50"
+                        step="1"
+                        value={minStars}
+                        onChange={(e) => setMinStars(Number(e.target.value))}
+                        className="w-full h-3 bg-gray-200 dark:bg-gray-600 rounded-lg appearance-none cursor-pointer slider touch-manipulation"
+                      />
+                      <div className="flex justify-between text-xs text-gray-500 dark:text-gray-400 mt-1">
+                        <span>0</span>
+                        <span>50+</span>
+                      </div>
+                    </div>
                   </div>
                   
                   {/* Minimum Forks */}
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                      Min Forks: {minForks}
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">
+                      Min Forks: <span className="font-bold text-primary-600 dark:text-primary-400">{minForks}</span>
                     </label>
-                    <input
-                      type="range"
-                      min="0"
-                      max="20"
-                      step="1"
-                      value={minForks}
-                      onChange={(e) => setMinForks(Number(e.target.value))}
-                      className="w-full h-2 bg-gray-200 dark:bg-gray-600 rounded-lg appearance-none cursor-pointer slider"
-                    />
+                    <div className="relative">
+                      <input
+                        type="range"
+                        min="0"
+                        max="20"
+                        step="1"
+                        value={minForks}
+                        onChange={(e) => setMinForks(Number(e.target.value))}
+                        className="w-full h-3 bg-gray-200 dark:bg-gray-600 rounded-lg appearance-none cursor-pointer slider touch-manipulation"
+                      />
+                      <div className="flex justify-between text-xs text-gray-500 dark:text-gray-400 mt-1">
+                        <span>0</span>
+                        <span>20+</span>
+                      </div>
+                    </div>
                   </div>
                   
                   {/* Activity Filter */}
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                      Activity
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">
+                      Activity Period
                     </label>
                     <select
                       value={activityFilter}
                       onChange={(e) => setActivityFilter(e.target.value)}
-                      className="w-full px-3 py-2 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg text-sm text-gray-700 dark:text-gray-300 focus:outline-none focus:ring-2 focus:ring-primary-500"
+                      className="w-full px-4 py-3 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg text-sm text-gray-700 dark:text-gray-300 focus:outline-none focus:ring-2 focus:ring-primary-500 touch-manipulation"
                     >
                       {activityOptions.map(option => (
                         <option key={option.id} value={option.id}>
@@ -531,10 +668,10 @@ const Projects = () => {
                 
                 {/* Advanced Reset Button */}
                 {hasActiveFilters && (
-                  <div className="flex justify-center pt-2">
+                  <div className="flex justify-center pt-4 border-t border-gray-200 dark:border-gray-700">
                     <motion.button
                       onClick={resetFilters}
-                      className="flex items-center gap-2 px-4 py-2 bg-gray-200 dark:bg-gray-600 text-gray-700 dark:text-gray-300 rounded-lg text-sm font-medium hover:bg-gray-300 dark:hover:bg-gray-500 transition-colors"
+                      className="flex items-center gap-2 px-6 py-3 bg-gray-200 dark:bg-gray-600 text-gray-700 dark:text-gray-300 rounded-lg text-sm font-medium hover:bg-gray-300 dark:hover:bg-gray-500 transition-colors touch-manipulation"
                       whileHover={{ scale: 1.05 }}
                       whileTap={{ scale: 0.95 }}
                     >
