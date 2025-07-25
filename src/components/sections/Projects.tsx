@@ -1,9 +1,10 @@
 import { motion } from 'framer-motion';
 import ProjectCard from '../ui/ProjectCard';
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useCallback } from 'react';
 import { useScrollAnimation } from '@/hooks/useScrollAnimation';
 import { useGitHubRepositories, useGitHubLanguages } from '@/hooks/useGitHubData';
 import { GitHubRepo } from '@/services/github-api';
+import { useDebounce } from '@/hooks/useDebounce';
 
 // Language to category mapping
 const LANGUAGE_TO_CATEGORY: Record<string, string> = {
@@ -78,7 +79,11 @@ const Projects = () => {
   const [minForks, setMinForks] = useState(0);
   const [activityFilter, setActivityFilter] = useState('all'); // all, recent, year
   const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
   const { ref: sectionRef, isInView } = useScrollAnimation({ threshold: 0.1 });
+  
+  // Debounce search query to avoid excessive filtering
+  const debouncedSearchQuery = useDebounce(searchQuery, 300);
   
   // Fetch GitHub data
   const { data: repositories, isLoading: reposLoading, error: reposError } = useGitHubRepositories('updated');
@@ -122,9 +127,28 @@ const Projects = () => {
     { id: 'older', label: 'Older than 1 Year' }
   ];
 
-  // Filter and sort projects with advanced filtering
+  // Filter and sort projects with advanced filtering and search
   const filteredProjects = useMemo(() => {
     let filtered = [...projects];
+    
+    // Apply search filter first (most restrictive)
+    if (debouncedSearchQuery.trim()) {
+      const query = debouncedSearchQuery.toLowerCase().trim();
+      filtered = filtered.filter(project => {
+        // Search in title, description, technologies, and language
+        const searchableText = [
+          project.title.toLowerCase(),
+          project.description.toLowerCase(),
+          ...project.technologies.map(tech => tech.toLowerCase()),
+          project.language?.toLowerCase() || '',
+          project.category.toLowerCase()
+        ].join(' ');
+        
+        // Support multi-word search queries
+        const queryWords = query.split(/\s+/).filter(word => word.length > 0);
+        return queryWords.every(word => searchableText.includes(word));
+      });
+    }
     
     // Apply category filter
     if (filter !== 'all') {
@@ -181,20 +205,28 @@ const Projects = () => {
     });
     
     return filtered;
-  }, [projects, filter, languageFilter, minStars, minForks, activityFilter, sortBy]);
+  }, [projects, filter, languageFilter, minStars, minForks, activityFilter, sortBy, debouncedSearchQuery]);
   
   // Reset filters function
-  const resetFilters = () => {
+  const resetFilters = useCallback(() => {
     setFilter('all');
     setLanguageFilter('all');
     setMinStars(0);
     setMinForks(0);
     setActivityFilter('all');
     setSortBy('updated');
-  };
+    setSearchQuery('');
+  }, []);
   
-  // Check if any advanced filters are active
+  // Clear search function
+  const clearSearch = useCallback(() => {
+    setSearchQuery('');
+  }, []);
+  
+  // Check if any filters are active
   const hasActiveFilters = languageFilter !== 'all' || minStars > 0 || minForks > 0 || activityFilter !== 'all';
+  const hasActiveSearch = debouncedSearchQuery.trim().length > 0;
+  const hasAnyActiveFilters = hasActiveFilters || hasActiveSearch;
   
   const isLoading = reposLoading || langLoading;
   const hasError = reposError;
@@ -279,8 +311,57 @@ const Projects = () => {
               ))}
             </motion.div>
             
+            {/* Search Bar */}
+            <motion.div
+              className="relative w-full max-w-md"
+              initial={{ opacity: 0, y: -10 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.25 }}
+              viewport={{ once: true }}
+            >
+              <div className="relative">
+                <input
+                  type="text"
+                  placeholder="Search projects by name, description, or technology..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="w-full pl-10 pr-10 py-3 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-xl text-sm text-gray-700 dark:text-gray-300 placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all duration-200"
+                />
+                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                  <svg className="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                  </svg>
+                </div>
+                {searchQuery && (
+                  <motion.button
+                    onClick={clearSearch}
+                    className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+                    whileHover={{ scale: 1.1 }}
+                    whileTap={{ scale: 0.9 }}
+                    initial={{ opacity: 0, scale: 0.8 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    exit={{ opacity: 0, scale: 0.8 }}
+                  >
+                    <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                  </motion.button>
+                )}
+              </div>
+              {hasActiveSearch && (
+                <motion.div
+                  className="absolute -bottom-6 left-0 text-xs text-primary-600 dark:text-primary-400"
+                  initial={{ opacity: 0, y: -5 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -5 }}
+                >
+                  Searching for "{debouncedSearchQuery}"
+                </motion.div>
+              )}
+            </motion.div>
+            
             {/* Controls Row */}
-            <div className="flex flex-wrap items-center justify-center gap-4">
+            <div className="flex flex-wrap items-center justify-center gap-4 mt-4">
               {/* Sort dropdown */}
               <motion.div
                 className="flex items-center gap-2"
@@ -327,15 +408,43 @@ const Projects = () => {
                 )}
               </motion.button>
               
+              {/* Clear All Button */}
+              {hasAnyActiveFilters && (
+                <motion.button
+                  onClick={resetFilters}
+                  className="flex items-center gap-2 px-3 py-2 bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300 rounded-lg text-sm font-medium hover:bg-red-200 dark:hover:bg-red-900/50 transition-colors"
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                  initial={{ opacity: 0, scale: 0.8 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  exit={{ opacity: 0, scale: 0.8 }}
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                  </svg>
+                  Clear All
+                </motion.button>
+              )}
+              
               {/* Results count */}
               <motion.div 
-                className="text-sm text-gray-500 dark:text-gray-400"
+                className="text-sm text-gray-500 dark:text-gray-400 flex items-center gap-2"
                 initial={{ opacity: 0 }}
                 whileInView={{ opacity: 1 }}
                 transition={{ delay: 0.5 }}
                 viewport={{ once: true }}
               >
-                Showing {filteredProjects.length} of {projects.length} projects
+                <span>Showing {filteredProjects.length} of {projects.length} projects</span>
+                {(hasActiveSearch || hasActiveFilters) && (
+                  <motion.span 
+                    className="px-2 py-1 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 rounded-full text-xs font-medium"
+                    initial={{ scale: 0 }}
+                    animate={{ scale: 1 }}
+                    exit={{ scale: 0 }}
+                  >
+                    Filtered
+                  </motion.span>
+                )}
               </motion.div>
             </div>
             
@@ -420,7 +529,7 @@ const Projects = () => {
                   </div>
                 </div>
                 
-                {/* Reset Filters Button */}
+                {/* Advanced Reset Button */}
                 {hasActiveFilters && (
                   <div className="flex justify-center pt-2">
                     <motion.button
@@ -432,7 +541,7 @@ const Projects = () => {
                       <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
                       </svg>
-                      Reset All Filters
+                      Reset Advanced Filters
                     </motion.button>
                   </div>
                 )}
@@ -519,10 +628,36 @@ const Projects = () => {
           >
             <div className="text-gray-600 dark:text-gray-400">
               <svg className="w-12 h-12 mx-auto mb-4 opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
               </svg>
-              <p>No projects found for the selected category.</p>
-              <p className="text-sm mt-2">Try selecting a different category or check back later.</p>
+              <p className="text-lg font-medium mb-2">
+                {hasActiveSearch ? `No projects found for "${debouncedSearchQuery}"` : 'No projects found'}
+              </p>
+              <p className="text-sm">
+                {hasActiveSearch ? (
+                  <span>
+                    Try adjusting your search terms or{' '}
+                    <button 
+                      onClick={clearSearch}
+                      className="text-primary-600 dark:text-primary-400 hover:underline font-medium"
+                    >
+                      clear search
+                    </button>
+                  </span>
+                ) : hasActiveFilters ? (
+                  <span>
+                    Try adjusting your filters or{' '}
+                    <button 
+                      onClick={resetFilters}
+                      className="text-primary-600 dark:text-primary-400 hover:underline font-medium"
+                    >
+                      reset all filters
+                    </button>
+                  </span>
+                ) : (
+                  'Try selecting a different category or check back later.'
+                )}
+              </p>
             </div>
           </motion.div>
         )}
