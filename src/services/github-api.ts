@@ -20,6 +20,7 @@ export interface GitHubRepo {
   full_name: string;
   description: string;
   html_url: string;
+  homepage: string | null;
   language: string;
   stargazers_count: number;
   forks_count: number;

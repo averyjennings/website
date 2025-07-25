@@ -11,9 +11,25 @@ interface ProjectCardProps {
   index: number;
   category?: string;
   featured?: boolean;
+  stars?: number;
+  forks?: number;
+  language?: string;
+  updatedAt?: string;
 }
 
-const ProjectCard = ({ title, description, technologies, github, demo, index, featured }: ProjectCardProps) => {
+const ProjectCard = ({ 
+  title, 
+  description, 
+  technologies, 
+  github, 
+  demo, 
+  index, 
+  featured, 
+  stars = 0, 
+  forks = 0, 
+  language, 
+  updatedAt 
+}: ProjectCardProps) => {
   const [isHovered, setIsHovered] = useState(false);
 
   return (
@@ -80,10 +96,61 @@ const ProjectCard = ({ title, description, technologies, github, demo, index, fe
       {/* Project Content */}
       <div className="p-6 flex-1 flex flex-col">
         <div className="flex-1">
-          <h3 className="text-xl font-semibold text-gray-900 dark:text-gray-100 mb-2 group-hover:text-primary-600 dark:group-hover:text-primary-400 transition-colors">
-            {title}
-          </h3>
+          <div className="flex items-start justify-between mb-2">
+            <h3 className="text-xl font-semibold text-gray-900 dark:text-gray-100 group-hover:text-primary-600 dark:group-hover:text-primary-400 transition-colors flex-1">
+              {title}
+            </h3>
+            {language && (
+              <motion.span
+                className="text-xs px-2 py-1 bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400 rounded-full font-medium ml-2 flex-shrink-0"
+                whileHover={{ scale: 1.05 }}
+              >
+                {language}
+              </motion.span>
+            )}
+          </div>
+          
           <p className="text-gray-600 dark:text-gray-300 mb-4 line-clamp-3">{description}</p>
+          
+          {/* Repository Stats */}
+          {(stars > 0 || forks > 0 || updatedAt) && (
+            <div className="flex items-center gap-4 mb-4 text-sm text-gray-500 dark:text-gray-400">
+              {stars > 0 && (
+                <motion.div 
+                  className="flex items-center gap-1"
+                  whileHover={{ scale: 1.05 }}
+                >
+                  <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
+                    <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
+                  </svg>
+                  <span>{stars}</span>
+                </motion.div>
+              )}
+              {forks > 0 && (
+                <motion.div 
+                  className="flex items-center gap-1"
+                  whileHover={{ scale: 1.05 }}
+                >
+                  <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
+                    <path d="M12 18.178l-4.62-2.699C6.17 14.479 5.5 13.266 5.5 12s.67-2.479 1.88-3.479L12 5.822l4.62 2.699C17.83 9.521 18.5 10.734 18.5 12s-.67 2.479-1.88 3.479L12 18.178z" />
+                    <path d="M12 0L5.46 3.22C3.36 4.45 2 6.64 2 9.05v5.9c0 2.41 1.36 4.6 3.46 5.83L12 24l6.54-3.22C20.64 19.55 22 17.36 22 14.95v-5.9c0-2.41-1.36-4.6-3.46-5.83L12 0z" />
+                  </svg>
+                  <span>{forks}</span>
+                </motion.div>
+              )}
+              {updatedAt && (
+                <motion.div 
+                  className="flex items-center gap-1"
+                  whileHover={{ scale: 1.05 }}
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                  <span>{new Date(updatedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</span>
+                </motion.div>
+              )}
+            </div>
+          )}
 
           {/* Technologies */}
           <div className="flex flex-wrap gap-2 mb-4">
@@ -122,19 +189,29 @@ const ProjectCard = ({ title, description, technologies, github, demo, index, fe
             </svg>
             <span className="font-medium">Code</span>
           </motion.a>
-          <motion.a
-            href={demo}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="flex items-center text-gray-600 dark:text-gray-400 hover:text-primary-600 dark:hover:text-primary-400 transition-colors group/link"
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
-          >
-            <svg className="w-5 h-5 mr-2 group-hover/link:translate-x-1 group-hover/link:-translate-y-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
-            </svg>
-            <span className="font-medium">Demo</span>
-          </motion.a>
+          {demo && demo !== github && (
+            <motion.a
+              href={demo}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center text-gray-600 dark:text-gray-400 hover:text-primary-600 dark:hover:text-primary-400 transition-colors group/link"
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+            >
+              <svg className="w-5 h-5 mr-2 group-hover/link:translate-x-1 group-hover/link:-translate-y-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+              </svg>
+              <span className="font-medium">Demo</span>
+            </motion.a>
+          )}
+          {(!demo || demo === github) && (
+            <span className="flex items-center text-gray-400 dark:text-gray-500">
+              <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
+              </svg>
+              <span className="font-medium text-sm">Repository</span>
+            </span>
+          )}
         </div>
       </div>
     </motion.div>

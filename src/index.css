@@ -40,6 +40,37 @@
   .gradient-light {
     background: linear-gradient(135deg, theme('colors.primary.50'), theme('colors.secondary.50'));
   }
+  
+  /* Custom slider styles */
+  .slider {
+    @apply bg-gray-200 dark:bg-gray-600;
+  }
+  
+  .slider::-webkit-slider-thumb {
+    @apply appearance-none w-4 h-4 bg-primary-600 rounded-full cursor-pointer shadow-lg;
+    transition: all 0.2s ease;
+  }
+  
+  .slider::-webkit-slider-thumb:hover {
+    @apply bg-primary-700 transform scale-110;
+  }
+  
+  .slider::-moz-range-thumb {
+    @apply w-4 h-4 bg-primary-600 rounded-full cursor-pointer border-0 shadow-lg;
+    transition: all 0.2s ease;
+  }
+  
+  .slider::-moz-range-thumb:hover {
+    @apply bg-primary-700 transform scale-110;
+  }
+  
+  .slider::-webkit-slider-track {
+    @apply h-2 bg-gray-200 dark:bg-gray-600 rounded-lg;
+  }
+  
+  .slider::-moz-range-track {
+    @apply h-2 bg-gray-200 dark:bg-gray-600 rounded-lg border-0;
+  }
 }
 
 @keyframes gradient {
