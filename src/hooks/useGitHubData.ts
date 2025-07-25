@@ -41,7 +41,7 @@ export function useGitHubRepositories(sort: 'updated' | 'created' | 'pushed' = '
     select: (data) => {
       // Filter out forked repositories and sort by various metrics
       return data
-        .filter(repo => !repo.full_name.includes('/'))
+        .filter(repo => !repo.fork) // Use the fork property instead of checking full_name
         .sort((a, b) => {
           if (sort === 'updated') return new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime();
           if (sort === 'created') return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();

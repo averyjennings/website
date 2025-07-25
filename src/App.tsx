@@ -7,6 +7,7 @@ import { ThemeProvider } from './components/providers/ThemeProvider';
 import SEO from './components/SEO';
 import { MetricsTestComponent } from './components/dashboard/MetricsTestComponent';
 import { ActivityFeed, ContributionGraph, RepoStats, LanguageChart } from './components/github';
+import { HeatmapToggle } from './components/heatmap/HeatmapToggle';
 
 function App() {
   return (
@@ -42,6 +43,8 @@ function App() {
           </div>
         </section>
         <Contact />
+        {/* Heatmap Analytics System */}
+        <HeatmapToggle />
       </Layout>
     </ThemeProvider>
   );

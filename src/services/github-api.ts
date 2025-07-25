@@ -29,6 +29,7 @@ export interface GitHubRepo {
   pushed_at: string;
   topics: string[];
   visibility: 'public' | 'private';
+  fork: boolean;
 }
 
 export interface GitHubCommit {
