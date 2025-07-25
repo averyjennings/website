@@ -73,7 +73,7 @@ const Hero = () => {
       </div>
       
       {/* Content */}
-      <div className="relative z-10 container mx-auto px-4 sm:px-6 lg:px-8 py-20">
+      <div className="relative z-10 container mx-auto px-4 sm:px-6 lg:px-8 py-16 sm:py-20 lg:py-24">
         <motion.div 
           className="text-center"
           variants={containerVariants}
@@ -82,7 +82,7 @@ const Hero = () => {
         >
           <motion.div variants={itemVariants}>
             <motion.h1 
-              className="text-5xl md:text-6xl lg:text-7xl font-bold text-gray-900 dark:text-gray-100 mb-6"
+              className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl xl:text-8xl font-bold text-gray-900 dark:text-gray-100 mb-4 sm:mb-6 lg:mb-8 leading-tight sm:leading-tight md:leading-tight tracking-tight"
               whileHover={{ scale: 1.02 }}
               transition={{ type: "spring", stiffness: 300 }}
             >
@@ -108,14 +108,14 @@ const Hero = () => {
 
           <motion.p
             variants={itemVariants}
-            className="text-xl md:text-2xl text-gray-600 dark:text-gray-300 mb-8 max-w-3xl mx-auto"
+            className="text-lg sm:text-xl md:text-2xl lg:text-3xl text-gray-600 dark:text-gray-300 mb-6 sm:mb-8 lg:mb-10 max-w-2xl sm:max-w-3xl lg:max-w-4xl mx-auto leading-relaxed px-2 sm:px-0"
           >
             Full-Stack Developer & Software Engineer crafting innovative solutions with modern technologies
           </motion.p>
 
           <motion.div
             variants={itemVariants}
-            className="flex flex-col sm:flex-row gap-4 justify-center items-center"
+            className="flex flex-col sm:flex-row gap-3 sm:gap-4 lg:gap-6 justify-center items-center px-4 sm:px-0"
           >
             <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
               <Button href="#projects" as="a" size="lg">
@@ -132,12 +132,12 @@ const Hero = () => {
           {/* Animated tech stack */}
           <motion.div
             variants={itemVariants}
-            className="mt-16 flex flex-wrap justify-center gap-4"
+            className="mt-12 sm:mt-16 lg:mt-20 flex flex-wrap justify-center gap-2 sm:gap-3 lg:gap-4 px-4 sm:px-0"
           >
             {['React', 'TypeScript', 'Node.js', 'Python', 'AWS'].map((tech, index) => (
               <motion.span
                 key={tech}
-                className="px-4 py-2 bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 rounded-full text-sm font-medium"
+                className="px-3 py-2 sm:px-4 sm:py-2 lg:px-5 lg:py-3 bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 rounded-full text-xs sm:text-sm lg:text-base font-medium touch-manipulation"
                 initial={{ opacity: 0, scale: 0 }}
                 animate={{ opacity: 1, scale: 1 }}
                 transition={{ delay: 1 + index * 0.1, type: "spring", stiffness: 200 }}
@@ -154,7 +154,7 @@ const Hero = () => {
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ duration: 0.5, delay: 1.5 }}
-          className="absolute bottom-8 left-1/2 transform -translate-x-1/2"
+          className="absolute bottom-4 sm:bottom-6 lg:bottom-8 left-1/2 transform -translate-x-1/2"
         >
           <motion.a 
             href="#about" 
@@ -163,7 +163,7 @@ const Hero = () => {
             transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
           >
             <svg
-              className="w-6 h-6"
+              className="w-5 h-5 sm:w-6 sm:h-6"
               fill="none"
               stroke="currentColor"
               viewBox="0 0 24 24"

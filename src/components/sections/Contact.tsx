@@ -36,23 +36,23 @@ const Contact = () => {
   ];
 
   return (
-    <section id="contact" className="py-20 bg-white dark:bg-gray-900">
-      <div className="container mx-auto px-4 sm:px-6 lg:px-8">
+    <section id="contact" className="py-12 sm:py-16 lg:py-20 xl:py-24 bg-white dark:bg-gray-900">
+      <div className="container mx-auto px-4 sm:px-6 lg:px-8 xl:px-12">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5 }}
           viewport={{ once: true }}
-          className="text-center mb-12"
+          className="text-center mb-8 sm:mb-10 lg:mb-12 xl:mb-16"
         >
-          <h2 className="text-3xl md:text-4xl font-bold text-gray-900 dark:text-gray-100 mb-4">Get In Touch</h2>
-          <p className="text-lg text-gray-600 dark:text-gray-300 max-w-2xl mx-auto">
+          <h2 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold text-gray-900 dark:text-gray-100 mb-3 sm:mb-4 lg:mb-6 leading-tight tracking-tight">Get In Touch</h2>
+          <p className="text-base sm:text-lg md:text-xl lg:text-2xl text-gray-600 dark:text-gray-300 max-w-xl sm:max-w-2xl lg:max-w-3xl mx-auto leading-relaxed px-2 sm:px-0">
             I'm always open to discussing new opportunities and interesting projects
           </p>
         </motion.div>
 
         <div className="max-w-4xl mx-auto">
-          <div className="grid md:grid-cols-3 gap-8">
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6 sm:gap-7 lg:gap-8">
             {contactMethods.map((method, index) => (
               <motion.a
                 key={method.name}
@@ -63,13 +63,13 @@ const Contact = () => {
                 whileInView={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.5, delay: index * 0.1 }}
                 viewport={{ once: true }}
-                className="group bg-gray-50 dark:bg-gray-800 rounded-xl p-8 text-center hover:bg-gray-100 dark:hover:bg-gray-700 hover:shadow-lg transition-all duration-300"
+                className="group bg-gray-50 dark:bg-gray-800 rounded-xl p-6 sm:p-7 lg:p-8 text-center hover:bg-gray-100 dark:hover:bg-gray-700 hover:shadow-lg transition-all duration-300 touch-manipulation"
               >
-                <div className="flex justify-center mb-4 text-gray-600 dark:text-gray-400 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
+                <div className="flex justify-center mb-3 sm:mb-4 lg:mb-5 text-gray-600 dark:text-gray-400 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
                   {method.icon}
                 </div>
-                <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-2">{method.name}</h3>
-                <p className="text-gray-600 dark:text-gray-400 text-sm break-all">{method.value}</p>
+                <h3 className="text-base sm:text-lg md:text-xl font-semibold text-gray-900 dark:text-gray-100 mb-2 sm:mb-3">{method.name}</h3>
+                <p className="text-gray-600 dark:text-gray-400 text-xs sm:text-sm md:text-base break-all leading-relaxed">{method.value}</p>
               </motion.a>
             ))}
           </div>
@@ -79,9 +79,9 @@ const Contact = () => {
             whileInView={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5, delay: 0.4 }}
             viewport={{ once: true }}
-            className="mt-12 text-center"
+            className="mt-10 sm:mt-12 lg:mt-16 text-center"
           >
-            <p className="text-gray-600 dark:text-gray-300 mb-6">Or send me a message directly:</p>
+            <p className="text-sm sm:text-base md:text-lg text-gray-600 dark:text-gray-300 mb-4 sm:mb-6 lg:mb-8">Or send me a message directly:</p>
             <Button href="mailto:avery.jennings@example.com" as="a" size="lg">
               Send Email
             </Button>
