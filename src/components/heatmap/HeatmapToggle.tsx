@@ -105,24 +105,24 @@ export function HeatmapToggle({ className = '' }: HeatmapToggleProps) {
         radius={radius}
       />
 
-      {/* Heatmap Control Panel */}
-      <div className={`fixed bottom-4 right-4 z-50 ${className}`}>
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 p-4 min-w-[300px]">
+      {/* Heatmap Control Panel - Mobile responsive */}
+      <div className={`fixed bottom-2 right-2 sm:bottom-4 sm:right-4 z-50 ${className}`}>
+        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 p-3 sm:p-4 w-[280px] sm:min-w-[300px] max-w-[calc(100vw-16px)] sm:max-w-none">
           {/* Header */}
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="text-sm font-medium text-gray-900 dark:text-white">
-              Heatmap Controls
+          <div className="flex items-center justify-between mb-3 sm:mb-4">
+            <h3 className="text-sm sm:text-base font-medium text-gray-900 dark:text-white">
+              <span className="hidden sm:inline">Heatmap </span>Controls
             </h3>
             <div className="flex items-center space-x-2">
               <div className={`w-2 h-2 rounded-full ${isTracking ? 'bg-green-500' : 'bg-gray-400'}`} />
-              <span className="text-xs text-gray-500 dark:text-gray-400">
+              <span className="text-xs sm:text-sm text-gray-500 dark:text-gray-400">
                 {isTracking ? 'Recording' : 'Paused'}
               </span>
             </div>
           </div>
 
           {/* Main Controls */}
-          <div className="space-y-3">
+          <div className="space-y-2 sm:space-y-3">
             {/* Toggle Tracking */}
             <div className="flex items-center justify-between">
               <label className="text-sm text-gray-700 dark:text-gray-300">
@@ -130,7 +130,7 @@ export function HeatmapToggle({ className = '' }: HeatmapToggleProps) {
               </label>
               <button
                 onClick={handleToggleTracking}
-                className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors ${
+                className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors touch-manipulation ${
                   config.enabled 
                     ? 'bg-blue-600' 
                     : 'bg-gray-200 dark:bg-gray-600'

@@ -31,8 +31,9 @@ export function HeatmapOverlay({
     const groupedPoints = new Map<string, { count: number; x: number; y: number; eventType: HeatmapDataPoint['eventType'] }>();
     
     filteredData.forEach(point => {
-      // Create grid-based grouping (every 20px)
-      const gridSize = 20;
+      // Create responsive grid-based grouping
+      const isMobile = window.innerWidth < 768;
+      const gridSize = isMobile ? 15 : 20;
       const gridX = Math.floor(point.x / gridSize) * gridSize;
       const gridY = Math.floor(point.y / gridSize) * gridSize;
       const key = `${gridX}-${gridY}-${point.eventType}`;
@@ -177,12 +178,12 @@ export function HeatmapOverlay({
         }}
       />
       
-      {/* Heatmap legend */}
-      <div className="absolute top-4 right-4 bg-white dark:bg-gray-800 rounded-lg shadow-lg p-3 pointer-events-auto">
-        <div className="text-xs font-medium text-gray-900 dark:text-white mb-2">
-          Heatmap Legend
+      {/* Heatmap legend - Mobile responsive */}
+      <div className="absolute top-2 right-2 sm:top-4 sm:right-4 bg-white dark:bg-gray-800 rounded-lg shadow-lg p-2 sm:p-3 pointer-events-auto max-w-[140px] sm:max-w-none">
+        <div className="text-xs sm:text-sm font-medium text-gray-900 dark:text-white mb-1 sm:mb-2">
+          <span className="hidden sm:inline">Heatmap </span>Legend
         </div>
-        <div className="space-y-1">
+        <div className="space-y-0.5 sm:space-y-1">
           {eventTypes.map(eventType => {
             const colors = {
               click: 'bg-red-500',
@@ -199,17 +200,18 @@ export function HeatmapOverlay({
             };
             
             return (
-              <div key={eventType} className="flex items-center space-x-2">
-                <div className={`w-3 h-3 rounded-full ${colors[eventType]}`} />
-                <span className="text-xs text-gray-600 dark:text-gray-300">
+              <div key={eventType} className="flex items-center space-x-1 sm:space-x-2">
+                <div className={`w-2 h-2 sm:w-3 sm:h-3 rounded-full ${colors[eventType]} flex-shrink-0`} />
+                <span className="text-xs text-gray-600 dark:text-gray-300 truncate">
                   {labels[eventType]}
                 </span>
               </div>
             );
           })}
         </div>
-        <div className="mt-2 text-xs text-gray-500 dark:text-gray-400">
-          {heatPoints.length} data points
+        <div className="mt-1 sm:mt-2 text-xs text-gray-500 dark:text-gray-400">
+          <span className="hidden sm:inline">{heatPoints.length} data </span>
+          <span className="sm:hidden">{heatPoints.length} </span>points
         </div>
       </div>
     </div>
