@@ -819,7 +819,7 @@ class SupabaseAnalyticsService {
   }
 
   // Fallback methods for localStorage compatibility
-  private fallbackToLocalStorage(method: string, ..._args: any[]): any {
+  private fallbackToLocalStorage(method: string, ...args: any[]): any {
     if (!this.config.fallbackToLocalStorage) {
       console.warn(`Supabase unavailable and fallback disabled for ${method}`);
       return this.getEmptyResponse(method);
@@ -827,9 +827,122 @@ class SupabaseAnalyticsService {
 
     console.warn(`Falling back to localStorage for ${method}`);
     
-    // Import and use the original analytics service for fallback
-    // This will be implemented to maintain compatibility during migration
-    return this.getEmptyResponse(method);
+    switch (method) {
+      case 'recordVisitor':
+        return this.recordVisitorLocalStorage();
+      case 'recordPageVisit':
+        return this.recordPageVisitLocalStorage();
+      case 'getVisitorStats':
+        return this.getVisitorStatsLocalStorage(args[0] || '24h');
+      case 'recordMetric':
+        return this.recordMetricLocalStorage(args[0]);
+      default:
+        return this.getEmptyResponse(method);
+    }
+  }
+
+  private recordVisitorLocalStorage(): void {
+    try {
+      const visitors = JSON.parse(localStorage.getItem('analytics-visitors') || '{}');
+      const now = new Date().toISOString();
+      
+      if (!visitors[this.userId]) {
+        visitors[this.userId] = {
+          user_id: this.userId,
+          first_visit: now,
+          last_visit: now,
+          visit_count: 1,
+          user_agent: navigator.userAgent
+        };
+      } else {
+        visitors[this.userId].last_visit = now;
+        visitors[this.userId].visit_count += 1;
+      }
+      
+      localStorage.setItem('analytics-visitors', JSON.stringify(visitors));
+      console.log('📦 Visitor recorded in localStorage');
+    } catch (error) {
+      console.error('Failed to record visitor in localStorage:', error);
+    }
+  }
+
+  private recordPageVisitLocalStorage(): void {
+    try {
+      const visits = JSON.parse(localStorage.getItem('analytics-page-visits') || '[]');
+      const visit = {
+        user_id: this.userId,
+        session_id: this.sessionId,
+        url: window.location.href,
+        timestamp: new Date().toISOString(),
+        user_agent: navigator.userAgent,
+        viewport_width: window.innerWidth,
+        viewport_height: window.innerHeight
+      };
+      
+      visits.push(visit);
+      
+      // Keep only last 1000 visits to prevent localStorage bloat
+      if (visits.length > 1000) {
+        visits.splice(0, visits.length - 1000);
+      }
+      
+      localStorage.setItem('analytics-page-visits', JSON.stringify(visits));
+      console.log('📦 Page visit recorded in localStorage');
+    } catch (error) {
+      console.error('Failed to record page visit in localStorage:', error);
+    }
+  }
+
+  private getVisitorStatsLocalStorage(timeRange: '1h' | '24h' | '7d' | '30d'): VisitorStats {
+    try {
+      const visits = JSON.parse(localStorage.getItem('analytics-page-visits') || '[]');
+      const config = this.getTimeRangeConfig(timeRange);
+      
+      // Filter visits by time range
+      const filteredVisits = visits.filter((visit: any) => {
+        const visitTime = new Date(visit.timestamp).getTime();
+        const startTime = new Date(config.startTime).getTime();
+        const endTime = new Date(config.endTime).getTime();
+        return visitTime >= startTime && visitTime <= endTime;
+      });
+      
+      // Count unique visitors
+      const uniqueUserIds = new Set(filteredVisits.map((visit: any) => visit.user_id).filter(Boolean));
+      
+      return {
+        uniqueVisitors: uniqueUserIds.size,
+        totalPageVisits: filteredVisits.length,
+        last24Hours: 0, // Simplified for localStorage fallback
+        lastWeek: 0,    // Simplified for localStorage fallback
+        sessionId: this.sessionId,
+        lastUpdated: Date.now()
+      };
+    } catch (error) {
+      console.error('Failed to get visitor stats from localStorage:', error);
+      return this.getEmptyResponse('getVisitorStats');
+    }
+  }
+
+  private recordMetricLocalStorage(metric: any): void {
+    try {
+      const metrics = JSON.parse(localStorage.getItem('analytics-web-vitals') || '[]');
+      metrics.push({
+        ...metric,
+        user_id: this.userId,
+        session_id: this.sessionId,
+        timestamp: new Date().toISOString()
+      });
+      
+      // Keep only last 500 metrics
+      if (metrics.length > 500) {
+        metrics.splice(0, metrics.length - 500);
+      }
+      
+      localStorage.setItem('analytics-web-vitals', JSON.stringify(metrics));
+      console.log('📦 Metric recorded in localStorage');
+    } catch (error) {
+      console.error('Failed to record metric in localStorage:', error);
+    }
   }
 
   private getEmptyResponse(method: string): any {
