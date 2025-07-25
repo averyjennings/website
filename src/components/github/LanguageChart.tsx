@@ -231,8 +231,8 @@ export function LanguageChart({
   return (
     <div className={`bg-white dark:bg-gray-800 rounded-lg shadow ${className}`}>
       {showHeader && (
-        <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
-          <h3 className="text-lg font-medium text-gray-900 dark:text-white">
+        <div className="px-4 sm:px-6 py-3 sm:py-4 border-b border-gray-200 dark:border-gray-700">
+          <h3 className="text-base sm:text-lg font-medium text-gray-900 dark:text-white">
             Language Distribution
           </h3>
           <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
@@ -241,9 +241,12 @@ export function LanguageChart({
         </div>
       )}
       
-      <div className="p-6">
-        {/* Chart */}
-        <div style={{ height: `${height}px` }} className="mb-6">
+      <div className="p-4 sm:p-6">
+        {/* Chart - Mobile responsive */}
+        <div 
+          style={{ height: `${height}px` }} 
+          className="mb-4 sm:mb-6 relative"
+        >
           {chartType === 'doughnut' ? (
             <Doughnut data={chartData} options={chartOptions} />
           ) : (
@@ -251,30 +254,28 @@ export function LanguageChart({
           )}
         </div>
 
-        {/* Language List */}
+        {/* Language List - Mobile enhanced */}
         {variant !== 'compact' && topLanguages.length > 0 && (
           <div>
             <h4 className="text-sm font-medium text-gray-900 dark:text-white mb-3">
               Top Languages
             </h4>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 gap-2 sm:gap-3">
               {topLanguages.map((lang, index) => (
-                <div key={lang.language} className="flex items-center justify-between p-2 rounded-lg bg-gray-50 dark:bg-gray-700">
-                  <div className="flex items-center space-x-2">
-                    <div className="flex items-center space-x-2">
-                      <span className="text-lg font-bold text-gray-400 dark:text-gray-500 w-4">
-                        {index + 1}
-                      </span>
-                      <div
-                        className="w-3 h-3 rounded-full"
-                        style={{ backgroundColor: lang.color }}
-                      />
-                      <span className="text-sm font-medium text-gray-900 dark:text-white">
-                        {lang.language}
-                      </span>
-                    </div>
+                <div key={lang.language} className="flex items-center justify-between p-3 sm:p-2 rounded-lg bg-gray-50 dark:bg-gray-700 touch-manipulation">
+                  <div className="flex items-center space-x-3 flex-1 min-w-0">
+                    <span className="text-base sm:text-lg font-bold text-gray-400 dark:text-gray-500 w-5 flex-shrink-0">
+                      {index + 1}
+                    </span>
+                    <div
+                      className="w-4 h-4 sm:w-3 sm:h-3 rounded-full flex-shrink-0"
+                      style={{ backgroundColor: lang.color }}
+                    />
+                    <span className="text-sm font-medium text-gray-900 dark:text-white truncate">
+                      {lang.language}
+                    </span>
                   </div>
-                  <div className="text-right">
+                  <div className="text-right flex-shrink-0 ml-3">
                     {showPercentages && (
                       <div className="text-sm font-medium text-gray-700 dark:text-gray-300">
                         {lang.percentage.toFixed(1)}%

@@ -19,6 +19,11 @@ export function ContributionGraph({
   cellSize = 12,
   showTooltip = true,
 }: ContributionGraphProps) {
+  // Mobile-responsive dimensions
+  const isMobile = typeof window !== 'undefined' && window.innerWidth < 640;
+  const responsiveWidth = isMobile ? Math.min(350, window.innerWidth - 32) : width;
+  const responsiveHeight = isMobile ? Math.min(160, height) : height;
+  const responsiveCellSize = isMobile ? Math.min(8, cellSize) : cellSize;
   const svgRef = useRef<SVGSVGElement>(null);
   const tooltipRef = useRef<HTMLDivElement>(null);
   const { data: contributions, isLoading, isError, error } = useGitHubContributions();
@@ -79,19 +84,21 @@ export function ContributionGraph({
     // Clear previous content
     svg.selectAll('*').remove();
 
-    // Set up dimensions
-    const margin = { top: 20, right: 20, bottom: 30, left: 40 };
-    const chartWidth = width - margin.left - margin.right;
-    const chartHeight = height - margin.top - margin.bottom;
+    // Set up responsive dimensions
+    const margin = isMobile 
+      ? { top: 15, right: 10, bottom: 25, left: 30 }
+      : { top: 20, right: 20, bottom: 30, left: 40 };
+    const chartWidth = responsiveWidth - margin.left - margin.right;
+    const chartHeight = responsiveHeight - margin.top - margin.bottom;
 
     // Create main group
     const g = svg
       .append('g')
       .attr('transform', `translate(${margin.left},${margin.top})`);
 
-    // Calculate cell spacing
-    const cellSpacing = 2;
-    const actualCellSize = Math.min(cellSize, (chartWidth - cellSpacing * processedData.length) / processedData.length);
+    // Calculate responsive cell spacing and size
+    const cellSpacing = isMobile ? 1 : 2;
+    const actualCellSize = Math.min(responsiveCellSize, (chartWidth - cellSpacing * processedData.length) / processedData.length);
 
     // Add month labels
     const monthsShown = new Set<string>();
@@ -99,29 +106,29 @@ export function ContributionGraph({
       const month = format(week.week, 'MMM');
       const monthKey = format(week.week, 'yyyy-MM');
       
-      if (!monthsShown.has(monthKey) && weekIndex % 4 === 0) {
+      if (!monthsShown.has(monthKey) && weekIndex % (isMobile ? 6 : 4) === 0) {
         monthsShown.add(monthKey);
         g.append('text')
           .attr('x', weekIndex * (actualCellSize + cellSpacing))
           .attr('y', -5)
           .attr('text-anchor', 'start')
-          .attr('font-size', '10px')
+          .attr('font-size', isMobile ? '8px' : '10px')
           .attr('fill', 'currentColor')
           .attr('class', 'text-gray-600 dark:text-gray-400')
           .text(month);
       }
     });
 
-    // Day labels (abbreviated)
+    // Day labels (abbreviated) - Mobile friendly
     const dayLabels = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
     dayLabels.forEach((day, i) => {
-      if (i % 2 === 1) { // Show every other day to avoid crowding
+      if (i % (isMobile ? 3 : 2) === 1) { // Show fewer labels on mobile
         g.append('text')
-          .attr('x', -10)
+          .attr('x', isMobile ? -8 : -10)
           .attr('y', i * (actualCellSize + cellSpacing) + actualCellSize / 2)
           .attr('text-anchor', 'end')
           .attr('dominant-baseline', 'middle')
-          .attr('font-size', '9px')
+          .attr('font-size', isMobile ? '7px' : '9px')
           .attr('fill', 'currentColor')
           .attr('class', 'text-gray-500 dark:text-gray-500')
           .text(day);
@@ -219,7 +226,7 @@ export function ContributionGraph({
       .attr('class', 'text-gray-600 dark:text-gray-400')
       .text('More');
 
-  }, [processedData, width, height, cellSize, showTooltip, isLoading]);
+  }, [processedData, responsiveWidth, responsiveHeight, responsiveCellSize, showTooltip, isLoading, isMobile]);
 
   if (isLoading) {
     return (
@@ -273,24 +280,35 @@ export function ContributionGraph({
   return (
     <div className={`bg-white dark:bg-gray-800 rounded-lg shadow ${className}`}>
       {showHeader && (
-        <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
-          <h3 className="text-lg font-medium text-gray-900 dark:text-white">
+        <div className="px-4 sm:px-6 py-3 sm:py-4 border-b border-gray-200 dark:border-gray-700">
+          <h3 className="text-base sm:text-lg font-medium text-gray-900 dark:text-white">
             Contribution Graph
           </h3>
           <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
             {totalContributions.toLocaleString()} contributions in the last year 
-            {activeDays > 0 && ` • ${activeDays} active days`}
+            {activeDays > 0 && (
+              <span className="hidden sm:inline">
+                {` • ${activeDays} active days`}
+              </span>
+            )}
           </p>
+          {/* Mobile: Show active days on separate line */}
+          {activeDays > 0 && (
+            <p className="text-xs text-gray-500 dark:text-gray-400 sm:hidden">
+              {activeDays} active days
+            </p>
+          )}
         </div>
       )}
       
-      <div className="p-6 overflow-x-auto">
+      <div className="p-3 sm:p-6 overflow-x-auto">
         <div className="relative">
           <svg
             ref={svgRef}
-            width={width}
-            height={height}
-            className="text-gray-600 dark:text-gray-400"
+            width={responsiveWidth}
+            height={responsiveHeight}
+            className="text-gray-600 dark:text-gray-400 mx-auto block"
+            style={{ minWidth: responsiveWidth }}
           />
           {showTooltip && (
             <div
