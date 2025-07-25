@@ -43,6 +43,22 @@ export function HeatmapToggle({ className = '' }: HeatmapToggleProps) {
     }
   }, [isVisible]);
 
+  // Auto-refresh heatmap data when visible (every 3 seconds)
+  useEffect(() => {
+    if (!isVisible) return;
+
+    const refreshInterval = setInterval(() => {
+      const currentBufferSize = heatmapTracker.getBufferSize();
+      // Only refresh if there's new data in the buffer
+      if (currentBufferSize > 0) {
+        console.log(`🔄 Auto-refreshing heatmap data (${currentBufferSize} new events)`);
+        loadHeatmapData();
+      }
+    }, 3000); // Check every 3 seconds
+
+    return () => clearInterval(refreshInterval);
+  }, [isVisible]);
+
   const loadHeatmapData = async () => {
     setIsLoading(true);
     try {
