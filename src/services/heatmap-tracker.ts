@@ -1,5 +1,4 @@
 import { supabase } from '@/lib/supabase';
-import { supabaseAnalyticsService } from './supabase-analytics';
 
 export interface HeatmapDataPoint {
   id?: string;

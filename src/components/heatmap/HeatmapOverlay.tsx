@@ -10,12 +10,6 @@ interface HeatmapOverlayProps {
   className?: string;
 }
 
-interface HeatPoint {
-  x: number;
-  y: number;
-  intensity: number;
-  eventType: HeatmapDataPoint['eventType'];
-}
 
 export function HeatmapOverlay({
   data = [],
