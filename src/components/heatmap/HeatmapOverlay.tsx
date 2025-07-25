@@ -73,14 +73,28 @@ export function HeatmapOverlay({
       
       if (!container || !canvas) return;
 
-      const rect = container.getBoundingClientRect();
-      const { width, height } = rect;
+      // Use document dimensions instead of viewport dimensions
+      const width = Math.max(
+        document.body.scrollWidth,
+        document.body.offsetWidth,
+        document.documentElement.clientWidth,
+        document.documentElement.scrollWidth,
+        document.documentElement.offsetWidth
+      );
+      
+      const height = Math.max(
+        document.body.scrollHeight,
+        document.body.offsetHeight,
+        document.documentElement.clientHeight,
+        document.documentElement.scrollHeight,
+        document.documentElement.offsetHeight
+      );
       
       // Set actual canvas size
       canvas.width = width * window.devicePixelRatio;
       canvas.height = height * window.devicePixelRatio;
       
-      // Scale canvas back down using CSS
+      // Scale canvas back down using CSS  
       canvas.style.width = `${width}px`;
       canvas.style.height = `${height}px`;
       
@@ -164,8 +178,10 @@ export function HeatmapOverlay({
   return (
     <div
       ref={containerRef}
-      className={`fixed inset-0 pointer-events-none z-50 ${className}`}
+      className={`absolute top-0 left-0 pointer-events-none z-50 ${className}`}
       style={{ 
+        width: dimensions.width || '100%',
+        height: dimensions.height || '100vh',
         mixBlendMode: 'multiply',
         opacity: 0.7,
       }}

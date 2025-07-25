@@ -14,6 +14,11 @@ export function HeatmapToggle({ className = '' }: HeatmapToggleProps) {
   const [intensity, setIntensity] = useState(70);
   const [radius, setRadius] = useState(25);
   const [isLoading, setIsLoading] = useState(false);
+  const [isControlsExpanded, setIsControlsExpanded] = useState(() => {
+    // Load preference from localStorage, default to collapsed
+    const stored = localStorage.getItem('heatmap-controls-expanded');
+    return stored === 'true';
+  });
 
   // Initialize heatmap tracker
   useEffect(() => {
@@ -91,6 +96,12 @@ export function HeatmapToggle({ className = '' }: HeatmapToggleProps) {
     }
   };
 
+  const handleToggleControls = () => {
+    const newExpanded = !isControlsExpanded;
+    setIsControlsExpanded(newExpanded);
+    localStorage.setItem('heatmap-controls-expanded', newExpanded.toString());
+  };
+
   const bufferSize = heatmapTracker.getBufferSize();
   const isTracking = heatmapTracker.isCurrentlyTracking();
 
@@ -105,21 +116,46 @@ export function HeatmapToggle({ className = '' }: HeatmapToggleProps) {
         radius={radius}
       />
 
-      {/* Heatmap Control Panel - Mobile responsive */}
+      {/* Heatmap Control Panel - Collapsible */}
       <div className={`fixed bottom-2 right-2 sm:bottom-4 sm:right-4 z-50 ${className}`}>
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 p-3 sm:p-4 w-[280px] sm:min-w-[300px] max-w-[calc(100vw-16px)] sm:max-w-none">
-          {/* Header */}
-          <div className="flex items-center justify-between mb-3 sm:mb-4">
-            <h3 className="text-sm sm:text-base font-medium text-gray-900 dark:text-white">
-              <span className="hidden sm:inline">Heatmap </span>Controls
-            </h3>
-            <div className="flex items-center space-x-2">
+        {!isControlsExpanded ? (
+          /* Collapsed State - Compact Toggle Button */
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 p-2 sm:p-3">
+            <button
+              onClick={handleToggleControls}
+              className="flex items-center space-x-2 text-sm text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white transition-colors"
+            >
               <div className={`w-2 h-2 rounded-full ${isTracking ? 'bg-green-500' : 'bg-gray-400'}`} />
-              <span className="text-xs sm:text-sm text-gray-500 dark:text-gray-400">
-                {isTracking ? 'Recording' : 'Paused'}
-              </span>
-            </div>
+              <span className="font-medium">Heatmap</span>
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+              </svg>
+            </button>
           </div>
+        ) : (
+          /* Expanded State - Full Control Panel */
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 p-3 sm:p-4 w-[280px] sm:min-w-[300px] max-w-[calc(100vw-16px)] sm:max-w-none">
+            {/* Header */}
+            <div className="flex items-center justify-between mb-3 sm:mb-4">
+              <h3 className="text-sm sm:text-base font-medium text-gray-900 dark:text-white">
+                <span className="hidden sm:inline">Heatmap </span>Controls
+              </h3>
+              <div className="flex items-center space-x-2">
+                <div className={`w-2 h-2 rounded-full ${isTracking ? 'bg-green-500' : 'bg-gray-400'}`} />
+                <span className="text-xs sm:text-sm text-gray-500 dark:text-gray-400">
+                  {isTracking ? 'Recording' : 'Paused'}
+                </span>
+                <button
+                  onClick={handleToggleControls}
+                  className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors ml-2"
+                  title="Collapse controls"
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7" />
+                  </svg>
+                </button>
+              </div>
+            </div>
 
           {/* Main Controls */}
           <div className="space-y-2 sm:space-y-3">
@@ -260,7 +296,8 @@ export function HeatmapToggle({ className = '' }: HeatmapToggleProps) {
               </button>
             </div>
           </div>
-        </div>
+          </div>
+        )}
       </div>
     </>
   );

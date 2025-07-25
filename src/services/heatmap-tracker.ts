@@ -136,7 +136,11 @@ class HeatmapTracker {
     const target = event.target as Element;
     if (!target) return;
 
-    const dataPoint = this.createDataPoint(event.clientX, event.clientY, target, 'click');
+    // Use page coordinates (relative to document) instead of viewport coordinates
+    const pageX = event.clientX + window.pageXOffset;
+    const pageY = event.clientY + window.pageYOffset;
+    
+    const dataPoint = this.createDataPoint(pageX, pageY, target, 'click');
     this.addDataPoint(dataPoint);
   };
 
@@ -164,7 +168,11 @@ class HeatmapTracker {
       const target = event.target as Element;
       if (!target) return;
 
-      const dataPoint = this.createDataPoint(event.clientX, event.clientY, target, 'hover');
+      // Use page coordinates (relative to document) instead of viewport coordinates
+      const pageX = event.clientX + window.pageXOffset;
+      const pageY = event.clientY + window.pageYOffset;
+
+      const dataPoint = this.createDataPoint(pageX, pageY, target, 'hover');
       this.addDataPoint(dataPoint);
     });
   };
