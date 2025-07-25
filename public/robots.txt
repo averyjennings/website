@@ -1,4 +1,25 @@
 User-agent: *
 Allow: /
 
-Sitemap: https://yourdomain.com/sitemap.xml
+# Block access to sensitive areas
+Disallow: /api/
+Disallow: /.env
+Disallow: /node_modules/
+Disallow: /src/
+Disallow: /dist/
+Disallow: /_next/static/
+Disallow: /_next/image/
+
+# Allow important pages
+Allow: /
+Allow: /#about
+Allow: /#projects
+Allow: /#github
+Allow: /#performance
+Allow: /#contact
+
+# Crawl delay
+Crawl-delay: 1
+
+# Sitemap location
+Sitemap: https://avery-portfolio-eosin.vercel.app/sitemap.xml
