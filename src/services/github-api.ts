@@ -77,24 +77,41 @@ export interface GitHubLanguageStats {
 class GitHubAPIService {
   private baseUrl = 'https://api.github.com';
   private username: string;
+  private token: string;
 
   constructor() {
     this.username = import.meta.env.VITE_GITHUB_USERNAME || '';
+    this.token = import.meta.env.VITE_GITHUB_TOKEN || '';
+    
     if (!this.username || this.username === 'yourusername') {
       console.warn('GitHub username not configured. Set VITE_GITHUB_USERNAME in your .env.local file');
+    }
+    
+    if (!this.token || this.token === 'your-github-token-here') {
+      console.warn('GitHub token not configured. API requests may be rate limited. Set VITE_GITHUB_TOKEN in your .env.local file');
+    } else {
+      console.log('✅ GitHub API authentication configured');
     }
   }
 
   private async fetchWithCache<T>(endpoint: string, options?: RequestInit): Promise<T> {
     const url = `${this.baseUrl}${endpoint}`;
     
+    // Build headers with optional authentication
+    const headers: Record<string, string> = {
+      'Accept': 'application/vnd.github.v3+json',
+      'User-Agent': 'Portfolio-Website',
+      ...options?.headers,
+    };
+
+    // Add authorization if token is available
+    if (this.token && this.token !== 'your-github-token-here') {
+      headers['Authorization'] = `token ${this.token}`;
+    }
+    
     try {
       const response = await fetch(url, {
-        headers: {
-          'Accept': 'application/vnd.github.v3+json',
-          'User-Agent': 'Portfolio-Website',
-          ...options?.headers,
-        },
+        headers,
         ...options,
       });
 
