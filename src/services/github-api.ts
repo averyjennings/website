@@ -268,6 +268,7 @@ class GitHubAPIService {
 
   // Utility methods for data processing
   getRepoStats(repos: GitHubRepo[]): {
+    totalRepos: number;
     totalStars: number;
     totalForks: number;
     totalSize: number;
@@ -275,6 +276,7 @@ class GitHubAPIService {
     mostStarredRepo: GitHubRepo | null;
     recentlyUpdated: GitHubRepo[];
   } {
+    const totalRepos = repos.length;
     const totalStars = repos.reduce((sum, repo) => sum + repo.stargazers_count, 0);
     const totalForks = repos.reduce((sum, repo) => sum + repo.forks_count, 0);
     const totalSize = repos.reduce((sum, repo) => sum + repo.size, 0);
@@ -296,6 +298,7 @@ class GitHubAPIService {
       .slice(0, 5);
 
     return {
+      totalRepos,
       totalStars,
       totalForks,
       totalSize,

@@ -33,7 +33,9 @@
       "Bash(pkill:*)",
       "Bash(true)",
       "mcp__playwright__browser_close",
-      "Bash(rm:*)"
+      "Bash(rm:*)",
+      "Bash(mkdir:*)",
+      "Bash(touch:*)"
     ],
     "deny": []
   }
