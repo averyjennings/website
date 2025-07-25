@@ -12,31 +12,78 @@ export function MetricsTestComponent() {
   const [timeRange, setTimeRange] = useState<'1h' | '24h' | '7d' | '30d'>('24h');
 
   // Get stats based on selected timeRange
-  const [stats, setStats] = useState(() => getStats(timeRange));
+  const [stats, setStats] = useState({
+    uniqueVisitors: 0,
+    totalPageVisits: 0,
+    last24Hours: 0,
+    lastWeek: 0,
+    sessionId: '',
+    lastUpdated: Date.now()
+  });
   const [statsLoading, setStatsLoading] = useState(true);
   
   useEffect(() => {
     const fetchStats = async () => {
       setStatsLoading(true);
+      console.log(`🚀 Starting to fetch stats for timeRange: ${timeRange}`);
       
-      // Get initial cached stats
-      const cachedStats = getStats(timeRange);
-      setStats(cachedStats);
-      
-      // Fetch fresh stats from Supabase
       try {
+        // Try to fetch fresh stats from Supabase with detailed debugging
+        console.log('🔍 Calling analyticsService.getVisitorStats...');
         const freshStats = await analyticsService.getVisitorStats(timeRange);
-        setStats(freshStats);
+        console.log('📊 Fresh stats received:', freshStats);
+        console.log('📊 Stats type:', typeof freshStats);
+        console.log('📊 Stats uniqueVisitors:', freshStats?.uniqueVisitors);
+        console.log('📊 Stats totalPageVisits:', freshStats?.totalPageVisits);
+        
+        // Ensure we have valid stats before setting them
+        if (freshStats && typeof freshStats === 'object' && 'uniqueVisitors' in freshStats) {
+          console.log('✅ Valid stats received, updating state');
+          setStats(freshStats);
+          setStatsLoading(false);
+          console.log('🔄 Stats updated successfully:', freshStats);
+        } else {
+          console.error('❌ Invalid stats format received from Supabase:', freshStats);
+          throw new Error('Invalid stats format received from Supabase');
+        }
       } catch (error) {
-        console.error('Failed to fetch stats:', error);
-      } finally {
-        setStatsLoading(false);
+        console.error('💥 Failed to fetch stats from Supabase, trying fallback:', error);
+        
+        // Final fallback: try to get cached stats or use defaults
+        try {
+          const cachedStats = getStats(timeRange);
+          console.log('📦 Using cached stats as fallback:', cachedStats);
+          setStats(cachedStats);
+          setStatsLoading(false);
+        } catch (fallbackError) {
+          console.error('💥 All fallbacks failed, using default values:', fallbackError);
+          // Only set defaults if we don't already have valid stats
+          setStats(prevStats => {
+            if (prevStats.uniqueVisitors > 0 || prevStats.totalPageVisits > 0) {
+              console.log('🔒 Keeping existing valid stats instead of resetting to zero');
+              return prevStats;
+            }
+            return {
+              uniqueVisitors: 0,
+              totalPageVisits: 0,
+              last24Hours: 0,
+              lastWeek: 0,
+              sessionId: '',
+              lastUpdated: Date.now()
+            };
+          });
+          setStatsLoading(false);
+        }
       }
     };
     
     fetchStats();
+  }, [timeRange, getStats]);
+
+  // Separate effect for refreshing Web Vitals metrics data
+  useEffect(() => {
     refreshData();
-  }, [timeRange, getStats, refreshData]);
+  }, [timeRange, refreshData]);
 
   // Get performance insights
   const performanceGrade = useMemo(() => {

@@ -63,17 +63,17 @@ class SupabaseAnalyticsService {
         console.log('🚀 Supabase Analytics Service initialized');
         // First ensure visitor record exists
         await this.recordVisitor();
-        // Wait a moment to ensure visitor record is committed before page visits
-        await new Promise(resolve => setTimeout(resolve, 100));
-        // Then record the page visit
-        await this.recordPageVisit();
         console.log('✅ Analytics initialization complete with valid user_id:', this.userId);
+        // Note: Page visits will be recorded when they actually happen, not during initialization
       } else {
         console.warn('⚠️ Supabase unavailable, falling back to localStorage');
       }
     } catch (error) {
       console.error('❌ Failed to initialize Supabase Analytics:', error);
       this.isSupabaseAvailable = false;
+    } finally {
+      // Clear the initialization promise to indicate completion
+      this.initializationPromise = null;
     }
   }
 
@@ -317,14 +317,24 @@ class SupabaseAnalyticsService {
 
   // Data Retrieval Methods
   public async getVisitorStats(timeRange: '1h' | '24h' | '7d' | '30d' = '24h'): Promise<VisitorStats> {
-    // Wait for initialization to complete
+    // Wait for initialization to complete with timeout
     if (this.initializationPromise) {
-      await this.initializationPromise;
+      try {
+        await Promise.race([
+          this.initializationPromise,
+          new Promise((_, reject) => setTimeout(() => reject(new Error('Initialization timeout')), 5000))
+        ]);
+        console.log('📊 Service initialization completed for getVisitorStats');
+      } catch (error) {
+        console.warn('⚠️ Service initialization timed out or failed, continuing anyway:', error);
+      }
     }
     
     // Always try Supabase first
     try {
+      console.log(`📊 Starting Supabase query for visitor stats (${timeRange})`);
       const config = this.getTimeRangeConfig(timeRange);
+      console.log(`📊 Time range config:`, config);
       
       // Get page visits in time range with distinct user_ids
       const { data: visitsData, error: visitsError } = await supabase

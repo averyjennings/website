@@ -1,3 +1,4 @@
+import { useEffect } from 'react';
 import Layout from './components/layout/Layout';
 import Hero from './components/sections/Hero';
 import About from './components/sections/About';
@@ -11,8 +12,16 @@ import { DynamicStructuredData } from './components/seo/DynamicStructuredData';
 import { MetricsTestComponent } from './components/dashboard/MetricsTestComponent';
 import { ActivityFeed, ContributionGraph, RepoStats, LanguageChart, GitHubStatus } from './components/github';
 import { HeatmapToggle } from './components/heatmap/HeatmapToggle';
+import { supabaseAnalyticsService } from '@/services/supabase-analytics';
 
 function App() {
+  // Record page visit when app loads
+  useEffect(() => {
+    console.log('📊 App loaded, recording page visit...');
+    supabaseAnalyticsService.recordPageVisit().catch(error => {
+      console.error('Failed to record page visit from App:', error);
+    });
+  }, []);
   return (
     <SEOProvider>
       <ThemeProvider>
