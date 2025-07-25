@@ -101,7 +101,7 @@ const Hero = () => {
                   backgroundSize: "200% 200%",
                 }}
               >
-                Your Name
+                Avery Jennings
               </motion.span>
             </motion.h1>
           </motion.div>
@@ -110,7 +110,7 @@ const Hero = () => {
             variants={itemVariants}
             className="text-xl md:text-2xl text-gray-600 dark:text-gray-300 mb-8 max-w-3xl mx-auto"
           >
-            Software Engineer passionate about building exceptional digital experiences
+            Full-Stack Developer & Software Engineer crafting innovative solutions with modern technologies
           </motion.p>
 
           <motion.div
