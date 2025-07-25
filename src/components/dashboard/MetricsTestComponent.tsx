@@ -125,17 +125,17 @@ export function MetricsTestComponent() {
   };
 
   return (
-    <div className="p-6 max-w-4xl mx-auto">
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
-        <h2 className="text-2xl font-bold">Web Vitals Test Dashboard</h2>
+    <div className="p-4 sm:p-6 max-w-7xl mx-auto">
+      <div className="flex flex-col space-y-4 sm:space-y-0 sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
+        <h2 className="text-xl sm:text-2xl font-bold text-center sm:text-left">Web Vitals Test Dashboard</h2>
         
         {/* Global Time Range Selector */}
-        <div className="flex items-center gap-2">
-          <span className="text-sm text-gray-500 font-medium">Time Range:</span>
+        <div className="flex items-center justify-center sm:justify-end gap-2">
+          <span className="text-sm text-gray-500 font-medium whitespace-nowrap">Time Range:</span>
           <select
             value={timeRange}
             onChange={(e) => setTimeRange(e.target.value as any)}
-            className="px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-white font-medium"
+            className="px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-white font-medium min-w-0 flex-1 sm:flex-initial"
           >
             <option value="1h">Last Hour</option>
             <option value="24h">Last 24 Hours</option>
@@ -170,22 +170,22 @@ export function MetricsTestComponent() {
       </div>
 
       {/* Action Buttons */}
-      <div className="flex flex-wrap gap-2 mb-6">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-6">
         <button
           onClick={refreshData}
-          className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 transition-colors"
+          className="w-full px-4 py-3 bg-blue-500 text-white rounded-lg hover:bg-blue-600 active:bg-blue-700 transition-colors font-medium text-sm sm:text-base touch-manipulation"
         >
           Refresh Data
         </button>
         <button
           onClick={handleExportJSON}
-          className="px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600 transition-colors"
+          className="w-full px-4 py-3 bg-green-500 text-white rounded-lg hover:bg-green-600 active:bg-green-700 transition-colors font-medium text-sm sm:text-base touch-manipulation"
         >
           Export JSON
         </button>
         <button
           onClick={handleExportCSV}
-          className="px-4 py-2 bg-purple-500 text-white rounded hover:bg-purple-600 transition-colors"
+          className="w-full px-4 py-3 bg-purple-500 text-white rounded-lg hover:bg-purple-600 active:bg-purple-700 transition-colors font-medium text-sm sm:text-base touch-manipulation"
         >
           Export CSV
         </button>
@@ -213,9 +213,9 @@ export function MetricsTestComponent() {
           </div>
         </div>
         
-        <div className="p-6">
+        <div className="p-4 sm:p-6">
           {/* Core Web Vitals Cards */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4 mb-6">
             {Object.entries(METRIC_INFO).map(([key, info]) => {
               const metricName = key as keyof typeof METRIC_INFO;
               const stats = metricStats[metricName];
@@ -302,19 +302,19 @@ export function MetricsTestComponent() {
 
       {/* Chart Visualization */}
       <div className="bg-white dark:bg-gray-800 rounded-lg shadow mb-6">
-        <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-            <h3 className="text-lg font-medium text-gray-900 dark:text-white">
+        <div className="px-4 sm:px-6 py-4 border-b border-gray-200 dark:border-gray-700">
+          <div className="flex flex-col space-y-4 sm:space-y-0 sm:flex-row sm:items-center sm:justify-between gap-4">
+            <h3 className="text-lg font-medium text-gray-900 dark:text-white text-center sm:text-left">
               Performance Visualization
             </h3>
             
             {/* Chart Controls */}
-            <div className="flex flex-wrap gap-2">
+            <div className="flex flex-col sm:flex-row gap-3 sm:gap-2 w-full sm:w-auto">
               {/* Chart Type */}
               <select
                 value={chartType}
                 onChange={(e) => setChartType(e.target.value as any)}
-                className="px-3 py-1 text-sm border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                className="w-full sm:w-auto px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white touch-manipulation"
               >
                 <option value="line">Line Chart</option>
                 <option value="bar">Bar Chart</option>
@@ -326,7 +326,7 @@ export function MetricsTestComponent() {
                 <select
                   value={selectedMetric}
                   onChange={(e) => setSelectedMetric(e.target.value)}
-                  className="px-3 py-1 text-sm border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                  className="w-full sm:w-auto px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white touch-manipulation"
                 >
                   <option value="all">All Metrics</option>
                   <option value="page-visits">Page Visits</option>
@@ -363,10 +363,10 @@ export function MetricsTestComponent() {
         </div>
       </div>
 
-      {/* Metrics Table */}
+      {/* Metrics Table/Cards */}
       <div className="bg-white dark:bg-gray-800 rounded-lg shadow overflow-hidden">
-        <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
-          <h3 className="text-lg font-medium text-gray-900 dark:text-white">
+        <div className="px-4 sm:px-6 py-4 border-b border-gray-200 dark:border-gray-700">
+          <h3 className="text-lg font-medium text-gray-900 dark:text-white text-center sm:text-left">
             Collected Metrics ({metrics.length})
           </h3>
         </div>
@@ -376,38 +376,16 @@ export function MetricsTestComponent() {
             No metrics collected yet. Navigate around the site to generate Web Vitals data.
           </div>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
-              <thead className="bg-gray-50 dark:bg-gray-700">
-                <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                    Metric
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                    Value
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                    Rating
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                    Timestamp
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                    URL
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
+          <>
+            {/* Mobile Card Layout */}
+            <div className="block sm:hidden">
+              <div className="p-4 space-y-4 max-h-96 overflow-y-auto">
                 {metrics.slice(-20).reverse().map((metric) => (
-                  <tr key={metric.id}>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-white">
-                      {metric.name}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-300">
-                      {metric.name === 'CLS' ? metric.value.toFixed(3) : Math.round(metric.value)}
-                      {metric.name !== 'CLS' && ' ms'}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
+                  <div key={metric.id} className="bg-gray-50 dark:bg-gray-700 rounded-lg p-4 space-y-2">
+                    <div className="flex items-center justify-between">
+                      <span className="font-medium text-gray-900 dark:text-white text-sm">
+                        {metric.name}
+                      </span>
                       <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
                         metric.rating === 'good' 
                           ? 'bg-green-100 text-green-800 dark:bg-green-800 dark:text-green-100'
@@ -417,27 +395,90 @@ export function MetricsTestComponent() {
                       }`}>
                         {metric.rating}
                       </span>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-300">
-                      {new Date(metric.timestamp).toLocaleTimeString()}
-                    </td>
-                    <td className="px-6 py-4 text-sm text-gray-500 dark:text-gray-300 max-w-xs truncate">
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm text-gray-500 dark:text-gray-300">
+                        Value: <span className="font-medium text-gray-900 dark:text-white">
+                          {metric.name === 'CLS' ? metric.value.toFixed(3) : Math.round(metric.value)}
+                          {metric.name !== 'CLS' && ' ms'}
+                        </span>
+                      </span>
+                      <span className="text-xs text-gray-400">
+                        {new Date(metric.timestamp).toLocaleTimeString()}
+                      </span>
+                    </div>
+                    <div className="text-xs text-gray-500 dark:text-gray-400 truncate">
                       {metric.url.replace(window.location.origin, '')}
-                    </td>
-                  </tr>
+                    </div>
+                  </div>
                 ))}
-              </tbody>
-            </table>
-          </div>
+              </div>
+            </div>
+
+            {/* Desktop Table Layout */}
+            <div className="hidden sm:block overflow-x-auto">
+              <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+                <thead className="bg-gray-50 dark:bg-gray-700">
+                  <tr>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                      Metric
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                      Value
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                      Rating
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                      Timestamp
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                      URL
+                    </th>
+                  </tr>
+                </thead>
+                <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
+                  {metrics.slice(-20).reverse().map((metric) => (
+                    <tr key={metric.id}>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-white">
+                        {metric.name}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-300">
+                        {metric.name === 'CLS' ? metric.value.toFixed(3) : Math.round(metric.value)}
+                        {metric.name !== 'CLS' && ' ms'}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
+                          metric.rating === 'good' 
+                            ? 'bg-green-100 text-green-800 dark:bg-green-800 dark:text-green-100'
+                            : metric.rating === 'needs-improvement'
+                            ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-800 dark:text-yellow-100'
+                            : 'bg-red-100 text-red-800 dark:bg-red-800 dark:text-red-100'
+                        }`}>
+                          {metric.rating}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-300">
+                        {new Date(metric.timestamp).toLocaleTimeString()}
+                      </td>
+                      <td className="px-6 py-4 text-sm text-gray-500 dark:text-gray-300 max-w-xs truncate">
+                        {metric.url.replace(window.location.origin, '')}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </>
         )}
       </div>
 
       {/* Understanding Web Vitals */}
-      <div className="mt-6 p-4 bg-gray-100 dark:bg-gray-700 rounded-lg">
-        <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">
+      <div className="mt-6 p-4 sm:p-6 bg-gray-100 dark:bg-gray-700 rounded-lg">
+        <h4 className="text-sm sm:text-base font-medium text-gray-700 dark:text-gray-300 mb-4 text-center sm:text-left">
           📊 Understanding Your Web Vitals Data
         </h4>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs text-gray-600 dark:text-gray-400">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 text-xs sm:text-sm text-gray-600 dark:text-gray-400">
           <div>
             <h5 className="font-medium text-gray-700 dark:text-gray-300 mb-1">Real Metrics Collection:</h5>
             <ul className="space-y-1">
