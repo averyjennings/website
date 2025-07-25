@@ -5,7 +5,9 @@ import {
   GitHubUser, 
   GitHubRepo, 
   GitHubEvent, 
-  GitHubLanguageStats 
+  GitHubLanguageStats,
+  ContributionStats,
+  EnhancedUserStats
 } from '@/services/github-api';
 
 // Cache durations (in milliseconds)
@@ -101,6 +103,29 @@ export function useGitHubContributions() {
     staleTime: CACHE_TIMES.CONTRIBUTIONS,
     gcTime: CACHE_TIMES.CONTRIBUTIONS * 2,
     retry: 1,
+  });
+}
+
+// Hook for comprehensive contribution statistics
+export function useGitHubContributionStats() {
+  return useQuery({
+    queryKey: githubQueryKeys.contributionStats,
+    queryFn: () => githubApi.getContributionStats(),
+    staleTime: CACHE_TIMES.CONTRIBUTIONS,
+    gcTime: CACHE_TIMES.CONTRIBUTIONS * 2,
+    retry: 1,
+  });
+}
+
+// Hook for enhanced user statistics using GraphQL
+export function useGitHubEnhancedUserStats() {
+  return useQuery({
+    queryKey: githubQueryKeys.enhancedUserStats,
+    queryFn: () => githubApi.getEnhancedUserStats(),
+    staleTime: CACHE_TIMES.USER,
+    gcTime: CACHE_TIMES.USER * 2,
+    retry: 2,
+    retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
   });
 }
 
@@ -249,3 +274,4 @@ export function useGitHubActivity() {
 // Type exports for component usage
 export type GitHubActivity = ReturnType<typeof useGitHubActivity>['data'][0];
 export type GitHubDashboardData = ReturnType<typeof useGitHubDashboard>['data'];
+export type { ContributionStats, EnhancedUserStats };

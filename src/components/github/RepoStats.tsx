@@ -1,5 +1,5 @@
 import { useMemo } from 'react';
-import { useGitHubRepoStats, useGitHubRepositories } from '@/hooks/useGitHubData';
+import { useGitHubRepoStats, useGitHubRepositories, useGitHubEnhancedUserStats } from '@/hooks/useGitHubData';
 import { GitHubComponentProps, LANGUAGE_COLORS } from '@/types/github';
 import { formatDistanceToNow } from 'date-fns';
 
@@ -21,6 +21,7 @@ export function RepoStats({
 }: RepoStatsProps) {
   const { data: stats, isLoading, error } = useGitHubRepoStats();
   const { data: repositories } = useGitHubRepositories();
+  const { data: enhancedStats, isLoading: enhancedLoading } = useGitHubEnhancedUserStats();
 
   const topLanguages = useMemo(() => {
     if (!stats?.languageDistribution) return [];
@@ -44,7 +45,7 @@ export function RepoStats({
       .slice(0, maxRepos);
   }, [repositories, maxRepos]);
 
-  if (isLoading) {
+  if (isLoading || enhancedLoading) {
     return (
       <div className={`bg-white dark:bg-gray-800 rounded-lg shadow ${className}`}>
         {showHeader && (
@@ -110,7 +111,7 @@ export function RepoStats({
       
       <div className="p-6 space-y-6">
         {/* Summary Stats */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
           <div className="text-center">
             <div className="text-2xl font-bold text-blue-600 dark:text-blue-400">
               {stats.totalRepos.toLocaleString()}
@@ -120,25 +121,81 @@ export function RepoStats({
           
           <div className="text-center">
             <div className="text-2xl font-bold text-yellow-600 dark:text-yellow-400">
-              {stats.totalStars.toLocaleString()}
+              {(enhancedStats?.totalStars || stats.totalStars).toLocaleString()}
             </div>
             <div className="text-sm text-gray-600 dark:text-gray-400">Total Stars</div>
           </div>
           
           <div className="text-center">
             <div className="text-2xl font-bold text-green-600 dark:text-green-400">
-              {stats.totalForks.toLocaleString()}
+              {(enhancedStats?.totalForks || stats.totalForks).toLocaleString()}
             </div>
             <div className="text-sm text-gray-600 dark:text-gray-400">Total Forks</div>
           </div>
           
-          <div className="text-center">
-            <div className="text-2xl font-bold text-purple-600 dark:text-purple-400">
-              {Math.round(stats.totalSize / 1024).toLocaleString()}
+          {enhancedStats && enhancedStats.totalContributions > 0 && (
+            <div className="text-center">
+              <div className="text-2xl font-bold text-indigo-600 dark:text-indigo-400">
+                {enhancedStats.totalContributions.toLocaleString()}
+              </div>
+              <div className="text-sm text-gray-600 dark:text-gray-400">Contributions</div>
             </div>
-            <div className="text-sm text-gray-600 dark:text-gray-400">MB Total</div>
-          </div>
+          )}
+          
+          {enhancedStats && enhancedStats.totalCommits > 0 && (
+            <div className="text-center">
+              <div className="text-2xl font-bold text-orange-600 dark:text-orange-400">
+                {enhancedStats.totalCommits.toLocaleString()}
+              </div>
+              <div className="text-sm text-gray-600 dark:text-gray-400">Commits</div>
+            </div>
+          )}
+          
+          {enhancedStats && enhancedStats.totalPullRequests > 0 && (
+            <div className="text-center">
+              <div className="text-2xl font-bold text-pink-600 dark:text-pink-400">
+                {enhancedStats.totalPullRequests.toLocaleString()}
+              </div>
+              <div className="text-sm text-gray-600 dark:text-gray-400">Pull Requests</div>
+            </div>
+          )}
         </div>
+
+        {/* Additional Enhanced Stats (when available) */}
+        {enhancedStats && (enhancedStats.totalIssues > 0 || enhancedStats.contributionsThisYear > 0) && (
+          <div className="bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 p-4 rounded-lg border border-blue-100 dark:border-blue-800">
+            <h4 className="text-md font-medium text-gray-900 dark:text-white mb-3 flex items-center">
+              <svg className="w-5 h-5 mr-2 text-blue-600 dark:text-blue-400" fill="currentColor" viewBox="0 0 20 20">
+                <path fillRule="evenodd" d="M12 7a1 1 0 110-2h5a1 1 0 011 1v5a1 1 0 11-2 0V8.414l-4.293 4.293a1 1 0 01-1.414 0L8 10.414l-4.293 4.293a1 1 0 01-1.414-1.414l5-5a1 1 0 011.414 0L11 10.586 14.586 7H12z" clipRule="evenodd" />
+              </svg>
+              Enhanced GitHub Statistics
+            </h4>
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+              {enhancedStats.contributionsThisYear > 0 && (
+                <div className="text-center">
+                  <div className="text-xl font-bold text-blue-600 dark:text-blue-400">
+                    {enhancedStats.contributionsThisYear.toLocaleString()}
+                  </div>
+                  <div className="text-xs text-gray-600 dark:text-gray-400">This Year</div>
+                </div>
+              )}
+              {enhancedStats.totalIssues > 0 && (
+                <div className="text-center">
+                  <div className="text-xl font-bold text-red-600 dark:text-red-400">
+                    {enhancedStats.totalIssues.toLocaleString()}
+                  </div>
+                  <div className="text-xs text-gray-600 dark:text-gray-400">Issues</div>
+                </div>
+              )}
+              <div className="text-center">
+                <div className="text-xl font-bold text-purple-600 dark:text-purple-400">
+                  {Math.round(stats.totalSize / 1024).toLocaleString()}
+                </div>
+                <div className="text-xs text-gray-600 dark:text-gray-400">MB Total</div>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Top Languages */}
         {showLanguages && topLanguages.length > 0 && (
