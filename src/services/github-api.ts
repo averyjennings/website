@@ -101,7 +101,7 @@ class GitHubAPIService {
     const headers: Record<string, string> = {
       'Accept': 'application/vnd.github.v3+json',
       'User-Agent': 'Portfolio-Website',
-      ...options?.headers,
+      ...(options?.headers as Record<string, string> || {}),
     };
 
     // Add authorization if token is available
