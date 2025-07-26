@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import Layout from './components/layout/Layout';
 import Hero from './components/sections/Hero';
 import About from './components/sections/About';
@@ -15,11 +15,24 @@ import { HeatmapToggle } from './components/heatmap/HeatmapToggle';
 import { supabaseAnalyticsService } from '@/services/supabase-analytics';
 
 function App() {
+  // Use ref to prevent double-counting in React StrictMode (development)
+  const hasRecordedPageVisit = useRef(false);
+
   // Record page visit when app loads
   useEffect(() => {
+    // Prevent double-counting in React StrictMode
+    if (hasRecordedPageVisit.current) {
+      console.log('📊 Page visit already recorded (React StrictMode), skipping...');
+      return;
+    }
+
     console.log('📊 App loaded, recording page visit...');
+    hasRecordedPageVisit.current = true;
+    
     supabaseAnalyticsService.recordPageVisit().catch(error => {
       console.error('Failed to record page visit from App:', error);
+      // Reset flag on error so it can be retried
+      hasRecordedPageVisit.current = false;
     });
   }, []);
   return (
