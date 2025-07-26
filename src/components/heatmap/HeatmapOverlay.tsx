@@ -24,57 +24,46 @@ export function HeatmapOverlay({
   const [dimensions, setDimensions] = useState({ width: 0, height: 0 });
   const [pendingClicks, setPendingClicks] = useState<HeatmapDataPoint[]>([]);
 
-  // Poll for pending clicks to provide instant feedback
+  // Efficient instant feedback using buffer data (no polling)
   useEffect(() => {
     if (!visible) {
       setPendingClicks([]);
       return;
     }
 
-    const pollPendingClicks = async () => {
+    // Get buffer data once when visible, then rely on periodic refresh
+    const getBufferData = () => {
       try {
-        // Get buffer data directly from the tracker for instant feedback
+        // Access buffer directly from tracker (synchronous, no database call)
+        const bufferData = heatmapTracker.getBufferData();
         const currentUrl = window.location.pathname + window.location.hash;
-        const allData = await heatmapTracker.getHeatmapData(currentUrl, eventTypes, 0.1); // Very recent (6 minutes)
         
-        // Filter to get only very recent clicks (last 2 minutes) as "pending"
-        const twoMinutesAgo = new Date(Date.now() - 2 * 60 * 1000).toISOString();
-        const recentClicks = allData.filter(point => point.timestamp > twoMinutesAgo);
+        // Filter buffer for current page and event types
+        const relevantBuffer = bufferData.filter(point => 
+          point.pageUrl === currentUrl && 
+          eventTypes.includes(point.eventType)
+        );
         
-        setPendingClicks(recentClicks);
+        setPendingClicks(relevantBuffer);
       } catch (error) {
-        console.error('Error polling pending clicks:', error);
+        console.error('Error accessing buffer data:', error);
       }
     };
 
-    // Poll immediately and then every 100ms for truly instant feedback
-    pollPendingClicks();
-    const pollInterval = setInterval(pollPendingClicks, 100);
+    // Get buffer data immediately
+    getBufferData();
+    
+    // Light refresh every 5 seconds (not 100ms!)
+    const lightRefresh = setInterval(getBufferData, 5000);
 
-    return () => clearInterval(pollInterval);
+    return () => clearInterval(lightRefresh);
   }, [visible, eventTypes]);
 
-  // Filter and normalize data points with advanced proportional scaling
+  // Process stable database data (no pending clicks to prevent constant recalculation)
   const heatPoints = useMemo(() => {
     try {
-      // Combine stable database data with pending clicks for instant feedback
-      const stableData = data.filter(point => eventTypes.includes(point.eventType));
-      const pendingData = pendingClicks.filter(point => eventTypes.includes(point.eventType));
-      
-      // Deduplicate by timestamp and position to avoid double-rendering
-      const combinedData = [...stableData];
-      pendingData.forEach(pendingPoint => {
-        const isDuplicate = stableData.some(stablePoint => 
-          Math.abs(stablePoint.x - pendingPoint.x) < 0.01 && 
-          Math.abs(stablePoint.y - pendingPoint.y) < 0.01 &&
-          Math.abs(new Date(stablePoint.timestamp).getTime() - new Date(pendingPoint.timestamp).getTime()) < 5000
-        );
-        if (!isDuplicate) {
-          combinedData.push(pendingPoint);
-        }
-      });
-      
-      const filteredData = combinedData;
+      // Only process stable database data for consistent performance
+      const filteredData = data.filter(point => eventTypes.includes(point.eventType));
       
       if (filteredData.length === 0) return [];
       
@@ -250,7 +239,51 @@ export function HeatmapOverlay({
       console.error('🚨 Error processing heatmap data:', error);
       return []; // Return empty array on error to prevent crashes
     }
-  }, [data, eventTypes, pendingClicks]); // Include pendingClicks for instant feedback
+  }, [data, eventTypes]); // Stable data only for consistent performance
+
+  // Process pending clicks separately for instant feedback without affecting stable calculation
+  const pendingHeatPoints = useMemo(() => {
+    if (!pendingClicks.length) return [];
+    
+    try {
+      const filteredPending = pendingClicks.filter(point => eventTypes.includes(point.eventType));
+      
+      // Get current document dimensions
+      const currentDocumentWidth = Math.max(
+        1, 
+        document.documentElement?.scrollWidth || 0,
+        document.documentElement?.offsetWidth || 0,  
+        document.documentElement?.clientWidth || 0,
+        document.body?.scrollWidth || 0,
+        document.body?.offsetWidth || 0,
+        window.innerWidth || 1920
+      );
+      
+      const currentDocumentHeight = Math.max(
+        1,
+        document.documentElement?.scrollHeight || 0,
+        document.documentElement?.offsetHeight || 0,
+        document.documentElement?.clientHeight || 0,
+        document.body?.scrollHeight || 0,
+        document.body?.offsetHeight || 0,
+        window.innerHeight || 1080
+      );
+      
+      // Convert pending clicks to absolute coordinates
+      return filteredPending.map(point => ({
+        x: Math.round(point.x * currentDocumentWidth),
+        y: Math.round(point.y * currentDocumentHeight),
+        intensity: 0.9, // High visibility for instant feedback
+        heatLevel: 'extreme' as const,
+        count: 1,
+        eventType: point.eventType,
+        isRecent: true,
+      }));
+    } catch (error) {
+      console.error('Error processing pending clicks:', error);
+      return [];
+    }
+  }, [pendingClicks, eventTypes]);
 
   // Update canvas dimensions when visibility changes or window resizes
   useEffect(() => {
@@ -346,7 +379,7 @@ export function HeatmapOverlay({
   useEffect(() => {
     try {
       const canvas = canvasRef.current;
-      if (!canvas || !visible || heatPoints.length === 0) {
+      if (!canvas || !visible || (heatPoints.length === 0 && pendingHeatPoints.length === 0)) {
         // Clear canvas when not visible
         if (canvas) {
           const ctx = canvas.getContext('2d');
@@ -447,7 +480,7 @@ export function HeatmapOverlay({
       return { hue, saturation, lightness };
     };
 
-    // Draw each heat point with sophisticated color gradient
+    // Draw stable heat points first
     heatPoints.forEach((point, index) => {
       try {
         const isRecent = (point as any).isRecent;
@@ -551,6 +584,65 @@ export function HeatmapOverlay({
       }
     });
 
+    // Draw pending heat points on top for instant feedback
+    pendingHeatPoints.forEach((point, index) => {
+      try {
+        // Validate point coordinates (more lenient)
+        if (!isFinite(point.x) || !isFinite(point.y) || 
+            point.x < -200 || point.y < -200 ||
+            point.x > dimensions.width + 200 || point.y > dimensions.height + 200) {
+          console.warn(`🚨 Skipping invalid pending heat point at index ${index}:`, point);
+          return;
+        }
+
+        // Pending points are always bright and prominent
+        const currentRadius = radius * 1.3; // Slightly larger for visibility
+        const { hue, saturation, lightness } = getHeatColor('extreme', point.eventType, point.intensity, true);
+        
+        // Create radial gradient for pending points
+        const gradient = ctx.createRadialGradient(
+          point.x, point.y, 0,
+          point.x, point.y, currentRadius
+        );
+        
+        const alpha = 0.9; // High visibility for pending clicks
+        
+        // Bright gradient for instant feedback
+        const centerColor = `hsla(${hue}, ${saturation}%, ${Math.min(90, lightness + 30)}%, ${alpha})`;
+        const midColor = `hsla(${hue}, ${saturation}%, ${lightness + 10}%, ${alpha * 0.8})`;
+        const edgeColor = `hsla(${hue}, ${Math.max(40, saturation - 10)}%, ${Math.max(30, lightness - 10)}%, ${alpha * 0.4})`;
+        const outerColor = `hsla(${hue}, ${Math.max(20, saturation - 30)}%, ${Math.max(20, lightness - 20)}%, 0)`;
+        
+        gradient.addColorStop(0, centerColor);
+        gradient.addColorStop(0.3, midColor);
+        gradient.addColorStop(0.7, edgeColor);
+        gradient.addColorStop(1, outerColor);
+
+        ctx.fillStyle = gradient;
+        
+        // Draw pending click circle
+        ctx.beginPath();
+        ctx.arc(point.x, point.y, currentRadius, 0, Math.PI * 2);
+        ctx.fill();
+        
+        // Add pulse effect for instant feedback
+        const pulseGradient = ctx.createRadialGradient(
+          point.x, point.y, 0,
+          point.x, point.y, currentRadius * 0.5
+        );
+        pulseGradient.addColorStop(0, `hsla(${hue}, 100%, 95%, 0.6)`);
+        pulseGradient.addColorStop(1, `hsla(${hue}, 100%, 95%, 0)`);
+        
+        ctx.fillStyle = pulseGradient;
+        ctx.beginPath();
+        ctx.arc(point.x, point.y, currentRadius * 0.5, 0, Math.PI * 2);
+        ctx.fill();
+        
+      } catch (pointError) {
+        console.error(`🚨 Error drawing pending heat point at index ${index}:`, pointError, point);
+      }
+    });
+
     // Reset composite operation
     try {
       ctx.globalCompositeOperation = 'source-over';
@@ -573,7 +665,7 @@ export function HeatmapOverlay({
         console.error('🚨 Error clearing canvas after draw error:', clearError);
       }
     }
-  }, [heatPoints, visible, dimensions, radius]);
+  }, [heatPoints, pendingHeatPoints, visible, dimensions, radius]);
 
   if (!visible) {
     return null;

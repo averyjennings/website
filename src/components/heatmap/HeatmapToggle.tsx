@@ -44,21 +44,8 @@ export function HeatmapToggle({ className = '' }: HeatmapToggleProps) {
     }
   }, [isVisible]);
 
-  // Minimal auto-refresh to prevent dots from disappearing
-  useEffect(() => {
-    if (!isVisible) return;
-
-    // Only refresh every 60 seconds to maintain stability
-    const refreshInterval = setInterval(() => {
-      console.log(`🔄 Minimal periodic refresh (60s interval)`);
-      loadHeatmapData();
-    }, 60000); // Every 60 seconds instead of 10
-
-    return () => clearInterval(refreshInterval);
-  }, [isVisible]);
-
-  // Manual refresh only - no automatic buffer checking to prevent dots disappearing
-  // Users can manually refresh if they want to see new data from other users
+  // No auto-refresh - only manual refresh to maintain performance and stability
+  // Buffer data provides instant feedback, database data provides persistence
 
   const loadHeatmapData = async () => {
     setIsLoading(true);

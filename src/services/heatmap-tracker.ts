@@ -506,6 +506,10 @@ class HeatmapTracker {
     return this.dataBuffer.length;
   }
 
+  public getBufferData(): HeatmapDataPoint[] {
+    return [...this.dataBuffer]; // Return copy to prevent external modification
+  }
+
   public isCurrentlyTracking(): boolean {
     return this.isTracking;
   }

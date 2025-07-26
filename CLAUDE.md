@@ -21,6 +21,7 @@ Claude Code is responsible for managing all git interactions for this project, i
 - Don't wait until the end of a large task - commit frequently with meaningful messages
 - Run `npm run lint` and `npm run build` before every commit to ensure code quality
 - Test functionality before committing to ensure nothing is broken
+- Only push commits that are validated through thorough testing and code review
 
 ## Visual Feedback & Screenshots
 
@@ -235,3 +236,4 @@ The project is designed to be deployed on Vercel with:
 ## MCP Tool Verification
 
 - You verify websites with your mcp tool
+```
