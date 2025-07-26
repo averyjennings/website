@@ -2,8 +2,10 @@ import { supabase } from '@/lib/supabase';
 
 export interface HeatmapDataPoint {
   id?: string;
-  x: number;
-  y: number;
+  x: number; // Relative X position (0-1 as percentage of document width)
+  y: number; // Relative Y position (0-1 as percentage of document height)
+  absoluteX?: number; // Original absolute X coordinate (for debugging)
+  absoluteY?: number; // Original absolute Y coordinate (for debugging)
   elementType: string;
   elementClass?: string;
   elementId?: string;
@@ -12,6 +14,8 @@ export interface HeatmapDataPoint {
   timestamp: string;
   viewportWidth: number;
   viewportHeight: number;
+  documentWidth: number; // Full document width at time of click
+  documentHeight: number; // Full document height at time of click
   userId: string;
   sessionId: string;
   eventType: 'click' | 'scroll' | 'hover' | 'focus';
@@ -192,9 +196,34 @@ class HeatmapTracker {
   }
 
   private createDataPoint(x: number, y: number, element: Element, eventType: HeatmapDataPoint['eventType']): HeatmapDataPoint {
+    // Get current document dimensions
+    const documentWidth = Math.max(
+      document.documentElement.scrollWidth,
+      document.documentElement.offsetWidth,
+      document.documentElement.clientWidth,
+      document.body.scrollWidth,
+      document.body.offsetWidth
+    );
+    
+    const documentHeight = Math.max(
+      document.documentElement.scrollHeight,
+      document.documentElement.offsetHeight,
+      document.documentElement.clientHeight,
+      document.body.scrollHeight,
+      document.body.offsetHeight
+    );
+    
+    // Convert absolute coordinates to relative (0-1 range)
+    const relativeX = Math.max(0, Math.min(1, x / documentWidth));
+    const relativeY = Math.max(0, Math.min(1, y / documentHeight));
+    
+    console.log(`📍 Click at absolute (${Math.round(x)}, ${Math.round(y)}) -> relative (${relativeX.toFixed(4)}, ${relativeY.toFixed(4)}) on ${documentWidth}x${documentHeight} document`);
+    
     return {
-      x: Math.round(x),
-      y: Math.round(y),
+      x: relativeX,
+      y: relativeY,
+      absoluteX: Math.round(x),
+      absoluteY: Math.round(y),
       elementType: element.tagName.toLowerCase(),
       elementClass: element.className || undefined,
       elementId: element.id || undefined,
@@ -203,6 +232,8 @@ class HeatmapTracker {
       timestamp: new Date().toISOString(),
       viewportWidth: window.innerWidth,
       viewportHeight: window.innerHeight,
+      documentWidth,
+      documentHeight,
       userId: this.userId,
       sessionId: this.sessionId,
       eventType,
@@ -257,8 +288,12 @@ class HeatmapTracker {
       const { error } = await supabase
         .from('heatmap_data')
         .insert(dataToFlush.map(point => ({
-          x: point.x,
-          y: point.y,
+          x: point.x, // Now storing relative coordinates
+          y: point.y, // Now storing relative coordinates
+          absolute_x: point.absoluteX,
+          absolute_y: point.absoluteY,
+          document_width: point.documentWidth,
+          document_height: point.documentHeight,
           element_type: point.elementType,
           element_class: point.elementClass,
           element_id: point.elementId,
@@ -328,8 +363,12 @@ class HeatmapTracker {
 
       const dbData = (data || []).map(item => ({
         id: item.id,
-        x: item.x,
-        y: item.y,
+        x: item.x, // Relative coordinates
+        y: item.y, // Relative coordinates
+        absoluteX: item.absolute_x,
+        absoluteY: item.absolute_y,
+        documentWidth: item.document_width,
+        documentHeight: item.document_height,
         elementType: item.element_type,
         elementClass: item.element_class,
         elementId: item.element_id,

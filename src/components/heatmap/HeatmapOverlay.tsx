@@ -29,18 +29,45 @@ export function HeatmapOverlay({
     
     if (filteredData.length === 0) return [];
     
+    // Get current document dimensions for coordinate conversion
+    const currentDocumentWidth = Math.max(
+      document.documentElement.scrollWidth,
+      document.documentElement.offsetWidth,
+      document.documentElement.clientWidth,
+      document.body ? document.body.scrollWidth : 0,
+      document.body ? document.body.offsetWidth : 0
+    );
+    
+    const currentDocumentHeight = Math.max(
+      document.documentElement.scrollHeight,
+      document.documentElement.offsetHeight,
+      document.documentElement.clientHeight,
+      document.body ? document.body.scrollHeight : 0,
+      document.body ? document.body.offsetHeight : 0
+    );
+    
+    console.log(`🌐 Converting coordinates for ${currentDocumentWidth}x${currentDocumentHeight} document`);
+    
+    // Convert relative coordinates to current absolute coordinates
+    const pointsWithAbsoluteCoords = filteredData.map(point => ({
+      ...point,
+      // Convert relative (0-1) coordinates to current absolute coordinates
+      absoluteX: Math.round(point.x * currentDocumentWidth),
+      absoluteY: Math.round(point.y * currentDocumentHeight),
+    }));
+    
     // Group points by proximity to reduce noise
     const groupedPoints = new Map<string, { count: number; x: number; y: number; eventType: HeatmapDataPoint['eventType']; isRecent: boolean }>();
     
     // Calculate what counts as "recent" (last 30 seconds for immediate feedback)
     const recentThreshold = new Date(Date.now() - 30000).toISOString();
     
-    filteredData.forEach(point => {
+    pointsWithAbsoluteCoords.forEach(point => {
       // Create responsive grid-based grouping - smaller grid for better precision
       const isMobile = window.innerWidth < 768;
       const gridSize = isMobile ? 12 : 15; // Smaller grid for more detailed clustering
-      const gridX = Math.floor(point.x / gridSize) * gridSize;
-      const gridY = Math.floor(point.y / gridSize) * gridSize;
+      const gridX = Math.floor(point.absoluteX / gridSize) * gridSize;
+      const gridY = Math.floor(point.absoluteY / gridSize) * gridSize;
       const key = `${gridX}-${gridY}-${point.eventType}`;
       
       const isRecent = point.timestamp > recentThreshold;
@@ -48,14 +75,14 @@ export function HeatmapOverlay({
       if (groupedPoints.has(key)) {
         const existing = groupedPoints.get(key)!;
         existing.count++;
-        existing.x = (existing.x + point.x) / 2; // Average position
-        existing.y = (existing.y + point.y) / 2;
+        existing.x = (existing.x + point.absoluteX) / 2; // Average position
+        existing.y = (existing.y + point.absoluteY) / 2;
         existing.isRecent = existing.isRecent || isRecent; // Mark as recent if any point is recent
       } else {
         groupedPoints.set(key, {
           count: 1,
-          x: point.x,
-          y: point.y,
+          x: point.absoluteX,
+          y: point.absoluteY,
           eventType: point.eventType,
           isRecent: isRecent,
         });
@@ -120,7 +147,7 @@ export function HeatmapOverlay({
     });
   }, [data, eventTypes, intensity]);
 
-  // Update canvas dimensions when visibility changes
+  // Update canvas dimensions when visibility changes or window resizes
   useEffect(() => {
     if (!visible) return;
 
@@ -128,30 +155,70 @@ export function HeatmapOverlay({
       const canvas = canvasRef.current;
       if (!canvas) return;
 
-      // Use simple viewport and document dimensions
-      const width = Math.max(window.innerWidth, document.documentElement.scrollWidth);
-      const height = Math.max(window.innerHeight, document.documentElement.scrollHeight);
+      // Get comprehensive document dimensions
+      const width = Math.max(
+        window.innerWidth,
+        document.documentElement.scrollWidth,
+        document.documentElement.offsetWidth,
+        document.documentElement.clientWidth,
+        document.body ? document.body.scrollWidth : 0,
+        document.body ? document.body.offsetWidth : 0
+      );
       
-      // Set canvas dimensions
-      canvas.width = width;
-      canvas.height = height;
+      const height = Math.max(
+        window.innerHeight,
+        document.documentElement.scrollHeight,
+        document.documentElement.offsetHeight,
+        document.documentElement.clientHeight,
+        document.body ? document.body.scrollHeight : 0,
+        document.body ? document.body.offsetHeight : 0
+      );
+      
+      // Set high-DPI canvas resolution
+      const devicePixelRatio = window.devicePixelRatio || 1;
+      canvas.width = width * devicePixelRatio;
+      canvas.height = height * devicePixelRatio;
+      
+      // Scale canvas back down using CSS
+      canvas.style.width = `${width}px`;
+      canvas.style.height = `${height}px`;
+      
+      // Scale the drawing context to match device pixel ratio
+      const ctx = canvas.getContext('2d');
+      if (ctx) {
+        ctx.scale(devicePixelRatio, devicePixelRatio);
+      }
       
       setDimensions({ width, height });
-      console.log('🗺️ Canvas dimensions set:', { width, height });
+      console.log(`🗺️ Canvas dimensions updated: ${width}x${height} (DPR: ${devicePixelRatio})`);
     };
 
-    // Update dimensions immediately and after a short delay
+    // Update dimensions immediately and after a short delay for layout settling
     updateDimensions();
     const timeoutId = setTimeout(updateDimensions, 100);
     
-    // Add event listener for window resize
-    window.addEventListener('resize', updateDimensions);
+    // Add event listeners for window resize and orientation change
+    const handleResize = () => {
+      console.log('📐 Window resized, updating heatmap canvas...');
+      setTimeout(updateDimensions, 50); // Small delay for layout completion
+    };
+    
+    window.addEventListener('resize', handleResize);
+    window.addEventListener('orientationchange', handleResize);
     
     return () => {
       clearTimeout(timeoutId);
-      window.removeEventListener('resize', updateDimensions);
+      window.removeEventListener('resize', handleResize);
+      window.removeEventListener('orientationchange', handleResize);
     };
   }, [visible]);
+  
+  // Force re-render when dimensions change to update coordinate calculations
+  useEffect(() => {
+    if (visible && dimensions.width > 0 && dimensions.height > 0) {
+      console.log(`🔄 Dimensions changed, recalculating heat points for ${dimensions.width}x${dimensions.height}`);
+    }
+  }, [visible, dimensions]);
 
   // Draw heatmap
   useEffect(() => {
@@ -170,7 +237,7 @@ export function HeatmapOverlay({
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
-    // Clear canvas
+    // Clear canvas (use logical dimensions, not canvas resolution)
     ctx.clearRect(0, 0, dimensions.width, dimensions.height);
     
     console.log(`🎨 Drawing ${heatPoints.length} heat points on canvas ${dimensions.width}x${dimensions.height}`);
