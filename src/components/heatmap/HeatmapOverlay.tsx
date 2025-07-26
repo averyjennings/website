@@ -25,28 +25,33 @@ export function HeatmapOverlay({
 
   // Filter and normalize data points with advanced proportional scaling
   const heatPoints = useMemo(() => {
-    const filteredData = data.filter(point => eventTypes.includes(point.eventType));
-    
-    if (filteredData.length === 0) return [];
-    
-    // Get current document dimensions for coordinate conversion
-    const currentDocumentWidth = Math.max(
-      document.documentElement.scrollWidth,
-      document.documentElement.offsetWidth,
-      document.documentElement.clientWidth,
-      document.body ? document.body.scrollWidth : 0,
-      document.body ? document.body.offsetWidth : 0
-    );
-    
-    const currentDocumentHeight = Math.max(
-      document.documentElement.scrollHeight,
-      document.documentElement.offsetHeight,
-      document.documentElement.clientHeight,
-      document.body ? document.body.scrollHeight : 0,
-      document.body ? document.body.offsetHeight : 0
-    );
-    
-    console.log(`🌐 Converting coordinates for ${currentDocumentWidth}x${currentDocumentHeight} document`);
+    try {
+      const filteredData = data.filter(point => eventTypes.includes(point.eventType));
+      
+      if (filteredData.length === 0) return [];
+      
+      // Get current document dimensions for coordinate conversion with error handling
+      const currentDocumentWidth = Math.max(
+        1, // Minimum width to prevent division by zero
+        document.documentElement?.scrollWidth || 0,
+        document.documentElement?.offsetWidth || 0,  
+        document.documentElement?.clientWidth || 0,
+        document.body?.scrollWidth || 0,
+        document.body?.offsetWidth || 0,
+        window.innerWidth || 1920 // Fallback
+      );
+      
+      const currentDocumentHeight = Math.max(
+        1, // Minimum height to prevent division by zero
+        document.documentElement?.scrollHeight || 0,
+        document.documentElement?.offsetHeight || 0,
+        document.documentElement?.clientHeight || 0,
+        document.body?.scrollHeight || 0,
+        document.body?.offsetHeight || 0,
+        window.innerHeight || 1080 // Fallback
+      );
+      
+      console.log(`🌐 Converting coordinates for ${currentDocumentWidth}x${currentDocumentHeight} document`);
     
     // Convert relative coordinates to current absolute coordinates with error handling
     const pointsWithAbsoluteCoords = filteredData.map(point => {
@@ -183,6 +188,10 @@ export function HeatmapOverlay({
         isRecent: point.isRecent,
       };
     });
+    } catch (error) {
+      console.error('🚨 Error processing heatmap data:', error);
+      return []; // Return empty array on error to prevent crashes
+    }
   }, [data, eventTypes, intensity]);
 
   // Update canvas dimensions when visibility changes or window resizes
@@ -190,45 +199,62 @@ export function HeatmapOverlay({
     if (!visible) return;
 
     const updateDimensions = () => {
-      const canvas = canvasRef.current;
-      if (!canvas) return;
+      try {
+        const canvas = canvasRef.current;
+        if (!canvas) return;
 
-      // Get comprehensive document dimensions
-      const width = Math.max(
-        window.innerWidth,
-        document.documentElement.scrollWidth,
-        document.documentElement.offsetWidth,
-        document.documentElement.clientWidth,
-        document.body ? document.body.scrollWidth : 0,
-        document.body ? document.body.offsetWidth : 0
-      );
-      
-      const height = Math.max(
-        window.innerHeight,
-        document.documentElement.scrollHeight,
-        document.documentElement.offsetHeight,
-        document.documentElement.clientHeight,
-        document.body ? document.body.scrollHeight : 0,
-        document.body ? document.body.offsetHeight : 0
-      );
-      
-      // Set high-DPI canvas resolution
-      const devicePixelRatio = window.devicePixelRatio || 1;
-      canvas.width = width * devicePixelRatio;
-      canvas.height = height * devicePixelRatio;
-      
-      // Scale canvas back down using CSS
-      canvas.style.width = `${width}px`;
-      canvas.style.height = `${height}px`;
-      
-      // Scale the drawing context to match device pixel ratio
-      const ctx = canvas.getContext('2d');
-      if (ctx) {
-        ctx.scale(devicePixelRatio, devicePixelRatio);
+        // Get comprehensive document dimensions with fallbacks
+        const width = Math.max(
+          1, // Minimum to prevent zero dimensions
+          window.innerWidth || 1920,
+          document.documentElement?.scrollWidth || 0,
+          document.documentElement?.offsetWidth || 0,
+          document.documentElement?.clientWidth || 0,
+          document.body?.scrollWidth || 0,
+          document.body?.offsetWidth || 0
+        );
+        
+        const height = Math.max(
+          1, // Minimum to prevent zero dimensions
+          window.innerHeight || 1080,
+          document.documentElement?.scrollHeight || 0,
+          document.documentElement?.offsetHeight || 0,
+          document.documentElement?.clientHeight || 0,
+          document.body?.scrollHeight || 0,
+          document.body?.offsetHeight || 0
+        );
+        
+        // Validate dimensions before applying
+        if (!isFinite(width) || !isFinite(height) || width <= 0 || height <= 0) {
+          console.error('🚨 Invalid canvas dimensions:', { width, height });
+          return;
+        }
+        
+        // Set high-DPI canvas resolution with safety checks
+        const devicePixelRatio = Math.max(1, Math.min(3, window.devicePixelRatio || 1)); // Clamp DPR
+        const canvasWidth = Math.min(32767, width * devicePixelRatio); // Max canvas size limit
+        const canvasHeight = Math.min(32767, height * devicePixelRatio);
+        
+        canvas.width = canvasWidth;
+        canvas.height = canvasHeight;
+        
+        // Scale canvas back down using CSS
+        canvas.style.width = `${width}px`;
+        canvas.style.height = `${height}px`;
+        
+        // Scale the drawing context to match device pixel ratio
+        const ctx = canvas.getContext('2d');
+        if (ctx) {
+          ctx.scale(devicePixelRatio, devicePixelRatio);
+        }
+        
+        setDimensions({ width, height });
+        console.log(`🗺️ Canvas dimensions updated: ${width}x${height} (DPR: ${devicePixelRatio})`);
+      } catch (error) {
+        console.error('🚨 Error updating canvas dimensions:', error);
+        // Set safe fallback dimensions
+        setDimensions({ width: 1920, height: 1080 });
       }
-      
-      setDimensions({ width, height });
-      console.log(`🗺️ Canvas dimensions updated: ${width}x${height} (DPR: ${devicePixelRatio})`);
     };
 
     // Update dimensions immediately and after a short delay for layout settling
@@ -258,27 +284,47 @@ export function HeatmapOverlay({
     }
   }, [visible, dimensions]);
 
-  // Draw heatmap
+  // Draw heatmap with comprehensive error handling
   useEffect(() => {
-    const canvas = canvasRef.current;
-    if (!canvas || !visible || heatPoints.length === 0) {
-      // Clear canvas when not visible
-      if (canvas) {
-        const ctx = canvas.getContext('2d');
-        if (ctx) {
-          ctx.clearRect(0, 0, dimensions.width, dimensions.height);
+    try {
+      const canvas = canvasRef.current;
+      if (!canvas || !visible || heatPoints.length === 0) {
+        // Clear canvas when not visible
+        if (canvas) {
+          const ctx = canvas.getContext('2d');
+          if (ctx) {
+            try {
+              ctx.clearRect(0, 0, dimensions.width, dimensions.height);
+            } catch (clearError) {
+              console.error('🚨 Error clearing canvas:', clearError);
+            }
+          }
         }
+        return;
       }
-      return;
-    }
 
-    const ctx = canvas.getContext('2d');
-    if (!ctx) return;
+      const ctx = canvas.getContext('2d');
+      if (!ctx) {
+        console.error('🚨 Could not get 2D context from canvas');
+        return;
+      }
 
-    // Clear canvas (use logical dimensions, not canvas resolution)
-    ctx.clearRect(0, 0, dimensions.width, dimensions.height);
-    
-    console.log(`🎨 Drawing ${heatPoints.length} heat points on canvas ${dimensions.width}x${dimensions.height}`);
+      // Validate dimensions before drawing
+      if (dimensions.width <= 0 || dimensions.height <= 0 || 
+          !isFinite(dimensions.width) || !isFinite(dimensions.height)) {
+        console.error('🚨 Invalid canvas dimensions for drawing:', dimensions);
+        return;
+      }
+
+      // Clear canvas (use logical dimensions, not canvas resolution)
+      try {
+        ctx.clearRect(0, 0, dimensions.width, dimensions.height);
+      } catch (clearError) {
+        console.error('🚨 Error clearing canvas before drawing:', clearError);
+        return;
+      }
+      
+      console.log(`🎨 Drawing ${heatPoints.length} heat points on canvas ${dimensions.width}x${dimensions.height}`);
 
     // Set blend mode for heat effect
     ctx.globalCompositeOperation = 'source-over'; // Changed from screen for better visibility
@@ -344,9 +390,18 @@ export function HeatmapOverlay({
     };
 
     // Draw each heat point with sophisticated color gradient
-    heatPoints.forEach((point) => {
-      const isRecent = (point as any).isRecent;
-      const heatLevel = (point as any).heatLevel || 'minimal';
+    heatPoints.forEach((point, index) => {
+      try {
+        const isRecent = (point as any).isRecent;
+        const heatLevel = (point as any).heatLevel || 'minimal';
+        
+        // Validate point coordinates
+        if (!isFinite(point.x) || !isFinite(point.y) || 
+            point.x < 0 || point.y < 0 ||
+            point.x > dimensions.width * 2 || point.y > dimensions.height * 2) {
+          console.warn(`🚨 Skipping invalid heat point at index ${index}:`, point);
+          return;
+        }
       
       // Dynamic radius based on heat level and recent status
       let currentRadius = radius;
@@ -431,10 +486,34 @@ export function HeatmapOverlay({
         ctx.arc(point.x, point.y, currentRadius * 0.4, 0, Math.PI * 2);
         ctx.fill();
       }
+      } catch (pointError) {
+        console.error(`🚨 Error drawing heat point at index ${index}:`, pointError, point);
+        // Continue to next point instead of crashing
+      }
     });
 
     // Reset composite operation
-    ctx.globalCompositeOperation = 'source-over';
+    try {
+      ctx.globalCompositeOperation = 'source-over';
+    } catch (resetError) {
+      console.error('🚨 Error resetting composite operation:', resetError);
+    }
+    
+    } catch (drawError) {
+      console.error('🚨 Critical error in heatmap drawing:', drawError);
+      // Try to clear the canvas to prevent visual artifacts
+      try {
+        const canvas = canvasRef.current;
+        if (canvas) {
+          const ctx = canvas.getContext('2d');
+          if (ctx) {
+            ctx.clearRect(0, 0, dimensions.width, dimensions.height);
+          }
+        }
+      } catch (clearError) {
+        console.error('🚨 Error clearing canvas after draw error:', clearError);
+      }
+    }
   }, [heatPoints, visible, dimensions, radius]);
 
   if (!visible) {
@@ -456,6 +535,9 @@ export function HeatmapOverlay({
         className="absolute inset-0 w-full h-full"
         style={{
           imageRendering: 'pixelated',
+        }}
+        onError={(e) => {
+          console.error('🚨 Canvas element error:', e);
         }}
       />
       
