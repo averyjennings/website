@@ -461,7 +461,7 @@ export function HeatmapOverlay({
     return () => clearInterval(metricsInterval);
   }, [visible]);
 
-  // PERFORMANCE OPTIMIZED: Draw heatmap with streamlined rendering pipeline
+  // PHASE 8: ALGORITHMIC REVOLUTION - Professional Gaussian blur kernel density heatmap
   useEffect(() => {
     const drawStartTime = performance.now();
     
@@ -503,150 +503,137 @@ export function HeatmapOverlay({
         return;
       }
       
-      console.log(`⚡ PHASE 5 OPTIMIZED: Drawing ${heatPoints.length} heat points + ${pendingHeatPoints.length} pending on ${dimensions.width}x${dimensions.height} canvas`);
+      console.log(`🌊 PHASE 8 ALGORITHMIC REVOLUTION: Creating fluid heatmap with ${heatPoints.length} data points + ${pendingHeatPoints.length} pending on ${dimensions.width}x${dimensions.height} canvas`);
 
-    // PERFORMANCE: Set optimized blend mode
-    ctx.globalCompositeOperation = 'source-over';
-
-    // VIBRANT COLOR SYSTEM: Advanced HSL-based intensity mapping with smooth transitions
-    const getVibrantHeatColor = (heatLevel: string, eventType: string, intensity: number, isRecent: boolean): string => {
-      // Enhanced color palette with vibrant base hues
-      const eventBaseHues = {
-        click: 0,     // Red spectrum (vibrant red-orange)
-        scroll: 120,  // Green spectrum (vibrant emerald)
-        hover: 240,   // Blue spectrum (vibrant cyan-blue)
-        focus: 60,    // Yellow spectrum (vibrant gold)
-      };
+      // PHASE 8: GAUSSIAN BLUR KERNEL DENSITY ALGORITHM
+      // Step 1: Create density canvas for grayscale accumulation
+      const densityCanvas = document.createElement('canvas');
+      densityCanvas.width = canvas.width;
+      densityCanvas.height = canvas.height;
+      const densityCtx = densityCanvas.getContext('2d');
       
-      const baseHue = eventBaseHues[eventType as keyof typeof eventBaseHues] || 0;
-      
-      // VIBRANT: Dynamic color shifting based on intensity with smooth transitions
-      let hue: number, saturation: number, lightness: number, alpha: number;
-      
-      switch (heatLevel) {
-        case 'extreme':
-          // Ultra-vibrant: Pure saturated colors with slight hue shift toward warmer
-          hue = baseHue - 10; // Shift toward warmer colors
-          saturation = 100;   // Maximum saturation
-          lightness = isRecent ? 65 : 60;  // Bright but not blinding
-          alpha = 0.95;
-          break;
-          
-        case 'high':
-          // High-vibrant: Rich colors with smooth hue transition
-          hue = baseHue - 5;  // Slight warm shift
-          saturation = 95;
-          lightness = isRecent ? 60 : 55;
-          alpha = 0.85;
-          break;
-          
-        case 'medium':
-          // Medium-vibrant: Balanced vivid colors
-          hue = baseHue;      // Pure base hue
-          saturation = 90;
-          lightness = isRecent ? 55 : 50;  
-          alpha = 0.70;
-          break;
-          
-        case 'low':
-          // Low-vibrant: Softer but still colorful
-          hue = baseHue + 10; // Shift toward cooler colors
-          saturation = 80;
-          lightness = isRecent ? 50 : 45;
-          alpha = 0.55;
-          break;
-          
-        case 'minimal':
-          // Minimal-vibrant: Subtle but still visible
-          hue = baseHue + 20; // More cool shift
-          saturation = 70;
-          lightness = isRecent ? 45 : 40;
-          alpha = 0.40;
-          break;
-          
-        default:
-          hue = baseHue;
-          saturation = 85;
-          lightness = 50;
-          alpha = 0.60;
-      }
-      
-      // RECENT BOOST: Extra vibrancy for instant feedback
-      if (isRecent) {
-        hue = Math.max(0, hue - 15);  // Warmer for recent
-        saturation = Math.min(100, saturation + 5); // More saturated
-        lightness = Math.min(80, lightness + 10);   // Brighter
-        alpha = Math.min(1.0, alpha + 0.15);        // More opaque
-      }
-      
-      // INTENSITY SCALING: Apply user intensity setting
-      const finalAlpha = alpha * (intensity / 100);
-      
-      // Normalize hue to 0-360 range
-      hue = ((hue % 360) + 360) % 360;
-      
-      return `hsla(${hue}, ${saturation}%, ${lightness}%, ${finalAlpha})`;
-    };
-
-    // PERFORMANCE OPTIMIZED: Streamlined single-pass rendering for 60fps
-    const allPoints = [...heatPoints, ...pendingHeatPoints];
-    
-    // OPTIMIZATION: Batch drawing operations
-    allPoints.forEach((point) => {
-      try {
-        const isRecent = (point as any).isRecent || false;
-        const heatLevel = (point as any).heatLevel || 'minimal';
-        
-        // OPTIMIZED: Quick bounds check
-        if (!isFinite(point.x) || !isFinite(point.y) || 
-            point.x < -100 || point.y < -100 ||
-            point.x > dimensions.width + 100 || point.y > dimensions.height + 100) {
-          return; // Skip invalid points silently for performance
-        }
-      
-        // SIMPLIFIED: Fixed radius with minimal variation for performance
-        const currentRadius = radius * (isRecent ? 1.2 : heatLevel === 'extreme' ? 1.1 : 1.0);
-        
-        // OPTIMIZED: Single gradient per point
-        const gradient = ctx.createRadialGradient(
-          point.x, point.y, 0,
-          point.x, point.y, currentRadius
-        );
-        
-        // VIBRANT GRADIENT: Multi-stop gradient for smooth color transitions
-        const centerColor = getVibrantHeatColor(heatLevel, point.eventType, intensity * 1.3, isRecent);
-        const midColor = getVibrantHeatColor(heatLevel, point.eventType, intensity * 0.8, isRecent);
-        const edgeColor = getVibrantHeatColor(heatLevel, point.eventType, intensity * 0.3, isRecent);
-        
-        // Create vibrant multi-stop gradient for smooth color shifting
-        gradient.addColorStop(0, centerColor);     // Vibrant center
-        gradient.addColorStop(0.4, midColor);      // Smooth transition
-        gradient.addColorStop(0.7, edgeColor);     // Soft edge
-        gradient.addColorStop(1, 'rgba(0, 0, 0, 0)'); // Transparent fade
-
-        ctx.fillStyle = gradient;
-        
-        // SINGLE DRAW OPERATION: One circle per point for maximum performance
-        ctx.beginPath();
-        ctx.arc(point.x, point.y, currentRadius, 0, Math.PI * 2);
-        ctx.fill();
-        
-      } catch (pointError) {
-        // Silent error handling for performance
+      if (!densityCtx) {
+        console.error('🚨 Could not create density context');
         return;
       }
-    });
 
-    // OPTIMIZATION: Pending points are now rendered in the single-pass loop above
+      // Step 2: Create pre-rendered blurred circle template (Gaussian kernel)
+      const circleRadius = radius;
+      const blurRadius = Math.max(15, circleRadius * 0.6); // Blur intensity
+      const circleCanvas = document.createElement('canvas');
+      const circleSize = (circleRadius + blurRadius) * 2;
+      circleCanvas.width = circleSize;
+      circleCanvas.height = circleSize;
+      const circleCtx = circleCanvas.getContext('2d');
+      
+      if (!circleCtx) {
+        console.error('🚨 Could not create circle context');
+        return;
+      }
 
-    // PERFORMANCE: Track drawing performance
-    const drawingTime = performance.now() - drawStartTime;
-    performanceMetricsRef.current.frameRate = drawingTime > 0 ? Math.round(1000 / drawingTime) : 60;
-    
-    console.log(`⚡ PHASE 5 OPTIMIZED: Drew ${allPoints.length} points in ${drawingTime.toFixed(2)}ms (${performanceMetricsRef.current.frameRate}fps) with streamlined processing`);
-    
+      // Create Gaussian blur effect using shadowBlur (simpleheat.js technique)
+      circleCtx.shadowColor = 'white';
+      circleCtx.shadowBlur = blurRadius;
+      circleCtx.globalCompositeOperation = 'source-over';
+      
+      // Draw white circle with blur to create Gaussian kernel
+      const centerX = circleSize / 2;
+      const centerY = circleSize / 2;
+      circleCtx.beginPath();
+      circleCtx.arc(centerX, centerY, circleRadius / 4, 0, Math.PI * 2);
+      circleCtx.fillStyle = 'white';
+      circleCtx.fill();
+      
+      // Remove shadow for subsequent operations
+      circleCtx.shadowColor = 'transparent';
+      circleCtx.shadowBlur = 0;
+
+      // Step 3: Build density map by drawing blurred circles
+      densityCtx.globalCompositeOperation = 'lighter'; // Additive blending for density accumulation
+      
+      const allPoints = [...heatPoints, ...pendingHeatPoints];
+      
+      allPoints.forEach((point) => {
+        try {
+          const isRecent = (point as any).isRecent || false;
+          const heatLevel = (point as any).heatLevel || 'minimal';
+          
+          // OPTIMIZED: Quick bounds check with tolerance for blur
+          const tolerance = circleSize;
+          if (!isFinite(point.x) || !isFinite(point.y) || 
+              point.x < -tolerance || point.y < -tolerance ||
+              point.x > dimensions.width + tolerance || point.y > dimensions.height + tolerance) {
+            return; // Skip out-of-bounds points
+          }
+
+          // Calculate intensity-based opacity for density accumulation
+          let densityOpacity = 0.1; // Base density
+          
+          switch (heatLevel) {
+            case 'extreme':
+              densityOpacity = isRecent ? 0.8 : 0.6;
+              break;
+            case 'high':
+              densityOpacity = isRecent ? 0.6 : 0.4;
+              break;
+            case 'medium':
+              densityOpacity = isRecent ? 0.4 : 0.3;
+              break;
+            case 'low':
+              densityOpacity = isRecent ? 0.3 : 0.2;
+              break;
+            case 'minimal':
+              densityOpacity = isRecent ? 0.2 : 0.1;
+              break;
+          }
+
+          // Apply user intensity setting
+          densityOpacity *= (intensity / 100);
+          
+          // Draw the pre-rendered blurred circle at point location
+          densityCtx.globalAlpha = densityOpacity;
+          densityCtx.drawImage(
+            circleCanvas,
+            point.x - centerX, // Center the circle on the point
+            point.y - centerY,
+            circleSize,
+            circleSize
+          );
+        } catch (pointError) {
+          // Silent error handling for performance
+          return;
+        }
+      });
+
+      // Step 4: Apply color gradient mapping to density canvas
+      densityCtx.globalAlpha = 1.0;
+      densityCtx.globalCompositeOperation = 'source-atop';
+      
+      // Create heat gradient (blue -> green -> yellow -> red)
+      const gradient = densityCtx.createLinearGradient(0, 0, 0, 1);
+      gradient.addColorStop(0, 'rgba(0, 0, 255, 0)');       // Transparent blue (no heat)
+      gradient.addColorStop(0.2, 'rgba(0, 255, 255, 0.4)'); // Light cyan
+      gradient.addColorStop(0.4, 'rgba(0, 255, 0, 0.6)');   // Green  
+      gradient.addColorStop(0.6, 'rgba(255, 255, 0, 0.8)'); // Yellow
+      gradient.addColorStop(0.8, 'rgba(255, 128, 0, 0.9)'); // Orange
+      gradient.addColorStop(1, 'rgba(255, 0, 0, 1.0)');     // Solid red (max heat)
+
+      // Apply gradient to entire density canvas
+      densityCtx.fillStyle = gradient;
+      densityCtx.fillRect(0, 0, densityCanvas.width, densityCanvas.height);
+
+      // Step 5: Composite the final heatmap onto main canvas
+      ctx.globalCompositeOperation = 'source-over';
+      ctx.drawImage(densityCanvas, 0, 0);
+
+      // PERFORMANCE: Track drawing performance
+      const drawingTime = performance.now() - drawStartTime;
+      performanceMetricsRef.current.frameRate = drawingTime > 0 ? Math.round(1000 / drawingTime) : 60;
+      
+      console.log(`🌊 PHASE 8 FLUID HEATMAP: Generated continuous heat zones from ${allPoints.length} points in ${drawingTime.toFixed(2)}ms (${performanceMetricsRef.current.frameRate}fps) with Gaussian blur algorithm`);
+      
     } catch (drawError) {
-      console.error('🚨 Critical error in heatmap drawing:', drawError);
+      console.error('🚨 Critical error in fluid heatmap drawing:', drawError);
       // Try to clear the canvas to prevent visual artifacts
       try {
         const canvas = canvasRef.current;
