@@ -48,13 +48,51 @@ export function HeatmapOverlay({
     
     console.log(`🌐 Converting coordinates for ${currentDocumentWidth}x${currentDocumentHeight} document`);
     
-    // Convert relative coordinates to current absolute coordinates
-    const pointsWithAbsoluteCoords = filteredData.map(point => ({
-      ...point,
+    // Convert relative coordinates to current absolute coordinates with error handling
+    const pointsWithAbsoluteCoords = filteredData.map(point => {
+      // Validate coordinates
+      const isValidX = typeof point.x === 'number' && !isNaN(point.x) && isFinite(point.x);
+      const isValidY = typeof point.y === 'number' && !isNaN(point.y) && isFinite(point.y);
+      
+      if (!isValidX || !isValidY) {
+        console.warn('🚨 Invalid coordinates detected:', { x: point.x, y: point.y, point });
+        return null; // Skip invalid points
+      }
+      
       // Convert relative (0-1) coordinates to current absolute coordinates
-      absoluteX: Math.round(point.x * currentDocumentWidth),
-      absoluteY: Math.round(point.y * currentDocumentHeight),
-    }));
+      const absoluteX = Math.round(point.x * currentDocumentWidth);
+      const absoluteY = Math.round(point.y * currentDocumentHeight);
+      
+      // Validate converted coordinates
+      if (absoluteX < 0 || absoluteY < 0 || 
+          absoluteX > currentDocumentWidth * 2 || absoluteY > currentDocumentHeight * 2) {
+        console.warn('🚨 Converted coordinates out of bounds:', { 
+          original: { x: point.x, y: point.y }, 
+          converted: { absoluteX, absoluteY },
+          document: { width: currentDocumentWidth, height: currentDocumentHeight }
+        });
+        return null; // Skip out-of-bounds points
+      }
+      
+      return {
+        ...point,
+        absoluteX,
+        absoluteY,
+      };
+    }).filter((point): point is NonNullable<typeof point> => point !== null); // Type-safe filter
+    
+    if (pointsWithAbsoluteCoords.length !== filteredData.length) {
+      console.warn(`🚨 Filtered out ${filteredData.length - pointsWithAbsoluteCoords.length} invalid coordinate points`);
+    }
+    
+    // If no valid points after coordinate conversion, return empty array
+    if (pointsWithAbsoluteCoords.length === 0) {
+      console.warn('🚨 No valid coordinate points after conversion - heatmap will be empty');
+      if (filteredData.length > 0) {
+        console.warn('🚨 This might indicate a coordinate system migration issue. Check database schema.');
+      }
+      return [];
+    }
     
     // Group points by proximity to reduce noise
     const groupedPoints = new Map<string, { count: number; x: number; y: number; eventType: HeatmapDataPoint['eventType']; isRecent: boolean }>();

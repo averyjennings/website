@@ -14,6 +14,7 @@ export function HeatmapToggle({ className = '' }: HeatmapToggleProps) {
   const [intensity, setIntensity] = useState(70);
   const [radius, setRadius] = useState(25);
   const [isLoading, setIsLoading] = useState(false);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [isControlsExpanded, setIsControlsExpanded] = useState(() => {
     // Load preference from localStorage, default to collapsed
     const stored = localStorage.getItem('heatmap-controls-expanded');
@@ -72,12 +73,27 @@ export function HeatmapToggle({ className = '' }: HeatmapToggleProps) {
 
   const loadHeatmapData = async () => {
     setIsLoading(true);
+    setLoadError(null);
     try {
       const currentUrl = window.location.pathname + window.location.hash;
       const data = await heatmapTracker.getHeatmapData(currentUrl, selectedEventTypes);
+      
+      if (!data || data.length === 0) {
+        console.log('📊 No heatmap data found for current page and selected event types');
+      } else {
+        console.log(`📊 Loaded ${data.length} heatmap data points`);
+      }
+      
       setHeatmapData(data);
     } catch (error) {
       console.error('Failed to load heatmap data:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error loading heatmap data';
+      setLoadError(errorMessage);
+      
+      // If error might be due to missing database columns, suggest migration
+      if (errorMessage.includes('column') || errorMessage.includes('relation')) {
+        setLoadError('Database migration required. Please run the heatmap schema update.');
+      }
     } finally {
       setIsLoading(false);
     }
@@ -220,11 +236,19 @@ export function HeatmapToggle({ className = '' }: HeatmapToggleProps) {
             <div className="flex items-center justify-between">
               <label className="text-sm text-gray-700 dark:text-gray-300">
                 Show Heatmap
-                {heatmapData.length > 0 && (
+                {loadError ? (
+                  <span className="ml-1 text-xs text-red-500" title={loadError}>
+                    (error)
+                  </span>
+                ) : heatmapData.length > 0 ? (
                   <span className="ml-1 text-xs text-gray-500">
                     ({heatmapData.length} points)
                   </span>
-                )}
+                ) : isLoading ? (
+                  <span className="ml-1 text-xs text-gray-500">
+                    (loading...)
+                  </span>
+                ) : null}
               </label>
               <button
                 onClick={handleToggleVisibility}
@@ -324,6 +348,17 @@ export function HeatmapToggle({ className = '' }: HeatmapToggleProps) {
                   {isLoading ? 'Loading...' : 'Refresh'}
                 </button>
               </div>
+              {loadError && (
+                <div className="mb-2 p-2 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded text-xs text-red-700 dark:text-red-300">
+                  <div className="font-medium">Error loading heatmap:</div>
+                  <div className="mt-1">{loadError}</div>
+                  {loadError.includes('migration') && (
+                    <div className="mt-1 text-red-600 dark:text-red-400">
+                      See MIGRATION-REQUIRED.md for instructions.
+                    </div>
+                  )}
+                </div>
+              )}
               <button
                 onClick={handleClearData}
                 className="text-xs text-red-600 dark:text-red-400 hover:text-red-700"

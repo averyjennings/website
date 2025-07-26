@@ -284,12 +284,12 @@ class HeatmapTracker {
     this.dataBuffer = [];
 
     try {
-      // Store in Supabase
-      const { error } = await supabase
+      // Try new format first (with relative coordinates)
+      const { error: newFormatError } = await supabase
         .from('heatmap_data')
         .insert(dataToFlush.map(point => ({
-          x: point.x, // Now storing relative coordinates
-          y: point.y, // Now storing relative coordinates
+          x: point.x, // Relative coordinates
+          y: point.y, // Relative coordinates
           absolute_x: point.absoluteX,
           absolute_y: point.absoluteY,
           document_width: point.documentWidth,
@@ -307,12 +307,45 @@ class HeatmapTracker {
           event_type: point.eventType,
         })));
 
-      if (error) {
-        console.error('Failed to store heatmap data:', error);
-        // Add data back to buffer for retry
-        this.dataBuffer.unshift(...dataToFlush);
+      if (newFormatError) {
+        // Check if error is due to missing columns (migration not run)
+        if (newFormatError.message?.includes('column') && 
+            (newFormatError.message?.includes('absolute_x') || 
+             newFormatError.message?.includes('document_width'))) {
+          
+          console.warn('📊 New columns not found, falling back to old format (migration needed)');
+          
+          // Fallback to old format (absolute coordinates)
+          const { error: oldFormatError } = await supabase
+            .from('heatmap_data')
+            .insert(dataToFlush.map(point => ({
+              x: point.absoluteX || Math.round(point.x * (point.documentWidth || 1920)), // Convert back to absolute
+              y: point.absoluteY || Math.round(point.y * (point.documentHeight || 1080)), // Convert back to absolute
+              element_type: point.elementType,
+              element_class: point.elementClass,
+              element_id: point.elementId,
+              element_text: point.elementText,
+              page_url: point.pageUrl,
+              timestamp: point.timestamp,
+              viewport_width: point.viewportWidth,
+              viewport_height: point.viewportHeight,
+              user_id: point.userId,
+              session_id: point.sessionId,
+              event_type: point.eventType,
+            })));
+            
+          if (oldFormatError) {
+            console.error('Failed to store heatmap data in old format:', oldFormatError);
+            this.dataBuffer.unshift(...dataToFlush);
+          } else {
+            console.log(`📊 Flushed ${dataToFlush.length} heatmap data points using old format`);
+          }
+        } else {
+          console.error('Failed to store heatmap data:', newFormatError);
+          this.dataBuffer.unshift(...dataToFlush);
+        }
       } else {
-        console.log(`📊 Flushed ${dataToFlush.length} heatmap data points to Supabase`);
+        console.log(`📊 Flushed ${dataToFlush.length} heatmap data points using new format`);
       }
     } catch (error) {
       console.error('Error flushing heatmap data:', error);
@@ -361,26 +394,60 @@ class HeatmapTracker {
         return this.getFallbackData();
       }
 
-      const dbData = (data || []).map(item => ({
-        id: item.id,
-        x: item.x, // Relative coordinates
-        y: item.y, // Relative coordinates
-        absoluteX: item.absolute_x,
-        absoluteY: item.absolute_y,
-        documentWidth: item.document_width,
-        documentHeight: item.document_height,
-        elementType: item.element_type,
-        elementClass: item.element_class,
-        elementId: item.element_id,
-        elementText: item.element_text,
-        pageUrl: item.page_url,
-        timestamp: item.timestamp,
-        viewportWidth: item.viewport_width,
-        viewportHeight: item.viewport_height,
-        userId: item.user_id,
-        sessionId: item.session_id,
-        eventType: item.event_type,
-      }));
+      const dbData = (data || []).map(item => {
+        // Handle both old and new data formats for backward compatibility
+        const isOldFormat = (item.x > 1 || item.y > 1) && !item.document_width;
+        
+        if (isOldFormat) {
+          console.log('📊 Converting old absolute coordinates to relative format');
+          // Old format: x,y are absolute coordinates
+          const documentWidth = item.viewport_width || 1920;
+          const documentHeight = item.viewport_height || 1080;
+          
+          return {
+            id: item.id,
+            x: Math.max(0, Math.min(1, item.x / documentWidth)), // Convert to relative
+            y: Math.max(0, Math.min(1, item.y / documentHeight)), // Convert to relative
+            absoluteX: item.x,
+            absoluteY: item.y,
+            documentWidth,
+            documentHeight,
+            elementType: item.element_type,
+            elementClass: item.element_class,
+            elementId: item.element_id,
+            elementText: item.element_text,
+            pageUrl: item.page_url,
+            timestamp: item.timestamp,
+            viewportWidth: item.viewport_width,
+            viewportHeight: item.viewport_height,
+            userId: item.user_id,
+            sessionId: item.session_id,
+            eventType: item.event_type,
+          };
+        } else {
+          // New format: x,y are already relative coordinates
+          return {
+            id: item.id,
+            x: item.x, // Already relative coordinates
+            y: item.y, // Already relative coordinates  
+            absoluteX: item.absolute_x,
+            absoluteY: item.absolute_y,
+            documentWidth: item.document_width || item.viewport_width || 1920,
+            documentHeight: item.document_height || item.viewport_height || 1080,
+            elementType: item.element_type,
+            elementClass: item.element_class,
+            elementId: item.element_id,
+            elementText: item.element_text,
+            pageUrl: item.page_url,
+            timestamp: item.timestamp,
+            viewportWidth: item.viewport_width,
+            viewportHeight: item.viewport_height,
+            userId: item.user_id,
+            sessionId: item.session_id,
+            eventType: item.event_type,
+          };
+        }
+      });
       
       // Include pending buffer data for immediate visual feedback
       const currentPageUrl = window.location.pathname + window.location.hash;
