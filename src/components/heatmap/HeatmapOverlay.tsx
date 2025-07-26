@@ -68,15 +68,15 @@ export function HeatmapOverlay({
       const absoluteX = Math.round(point.x * currentDocumentWidth);
       const absoluteY = Math.round(point.y * currentDocumentHeight);
       
-      // Validate converted coordinates
-      if (absoluteX < 0 || absoluteY < 0 || 
-          absoluteX > currentDocumentWidth * 2 || absoluteY > currentDocumentHeight * 2) {
-        console.warn('🚨 Converted coordinates out of bounds:', { 
+      // Validate converted coordinates (more lenient bounds)
+      if (absoluteX < -100 || absoluteY < -100 || 
+          absoluteX > currentDocumentWidth + 100 || absoluteY > currentDocumentHeight + 100) {
+        console.warn('🚨 Converted coordinates severely out of bounds:', { 
           original: { x: point.x, y: point.y }, 
           converted: { absoluteX, absoluteY },
           document: { width: currentDocumentWidth, height: currentDocumentHeight }
         });
-        return null; // Skip out-of-bounds points
+        return null; // Skip severely out-of-bounds points only
       }
       
       return {
@@ -102,8 +102,8 @@ export function HeatmapOverlay({
     // Group points by proximity to reduce noise
     const groupedPoints = new Map<string, { count: number; x: number; y: number; eventType: HeatmapDataPoint['eventType']; isRecent: boolean }>();
     
-    // Calculate what counts as "recent" (last 30 seconds for immediate feedback)
-    const recentThreshold = new Date(Date.now() - 30000).toISOString();
+    // Calculate what counts as "recent" (last 60 seconds for stability)
+    const recentThreshold = new Date(Date.now() - 60000).toISOString();
     
     pointsWithAbsoluteCoords.forEach(point => {
       // Create responsive grid-based grouping - smaller grid for better precision
@@ -172,16 +172,13 @@ export function HeatmapOverlay({
         normalizedIntensity = 0.2 + ((point.count - minCount) / Math.max(p25 - minCount, 1)) * 0.1; // 0.2-0.3
       }
       
-      // Apply user intensity setting while maintaining relative relationships
-      const finalIntensity = Math.max(
-        0.15, // Absolute minimum visibility - nothing disappears completely
-        normalizedIntensity * (intensity / 100) * (point.isRecent ? 1.3 : 1)
-      );
+      // Store normalized intensity without applying user setting yet
+      const baseIntensity = normalizedIntensity * (point.isRecent ? 1.3 : 1);
       
       return {
         x: point.x,
         y: point.y,
-        intensity: finalIntensity,
+        intensity: baseIntensity, // Base intensity without user scaling
         heatLevel,
         count: point.count,
         eventType: point.eventType,
@@ -192,7 +189,7 @@ export function HeatmapOverlay({
       console.error('🚨 Error processing heatmap data:', error);
       return []; // Return empty array on error to prevent crashes
     }
-  }, [data, eventTypes, intensity]);
+  }, [data, eventTypes]); // Removed intensity dependency to prevent constant recalculation
 
   // Update canvas dimensions when visibility changes or window resizes
   useEffect(() => {
@@ -395,11 +392,11 @@ export function HeatmapOverlay({
         const isRecent = (point as any).isRecent;
         const heatLevel = (point as any).heatLevel || 'minimal';
         
-        // Validate point coordinates
+        // Validate point coordinates (more lenient)
         if (!isFinite(point.x) || !isFinite(point.y) || 
-            point.x < 0 || point.y < 0 ||
-            point.x > dimensions.width * 2 || point.y > dimensions.height * 2) {
-          console.warn(`🚨 Skipping invalid heat point at index ${index}:`, point);
+            point.x < -200 || point.y < -200 ||
+            point.x > dimensions.width + 200 || point.y > dimensions.height + 200) {
+          console.warn(`🚨 Skipping severely invalid heat point at index ${index}:`, point);
           return;
         }
       
@@ -435,7 +432,8 @@ export function HeatmapOverlay({
         point.x, point.y, currentRadius
       );
       
-      const alpha = Math.max(0.15, point.intensity); // Ensure minimum visibility
+      // Apply user intensity setting at render time to prevent recalculation flicker
+      const alpha = Math.max(0.15, point.intensity * (intensity / 100)); // Apply user intensity here
       
       // Multi-stop gradient for realistic heat effect
       const centerColor = `hsla(${hue}, ${saturation}%, ${Math.min(85, lightness + 20)}%, ${alpha})`;

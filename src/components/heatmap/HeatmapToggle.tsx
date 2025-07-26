@@ -44,29 +44,29 @@ export function HeatmapToggle({ className = '' }: HeatmapToggleProps) {
     }
   }, [isVisible]);
 
-  // Auto-refresh heatmap data when visible (every 3 seconds)
+  // Auto-refresh heatmap data when visible (reduced frequency for stability)
   useEffect(() => {
     if (!isVisible) return;
 
     const refreshInterval = setInterval(() => {
       console.log(`🔄 Auto-refreshing heatmap data (periodic refresh)`);
       loadHeatmapData();
-    }, 3000); // Refresh every 3 seconds for better responsiveness
+    }, 10000); // Refresh every 10 seconds instead of 3 for stability
 
     return () => clearInterval(refreshInterval);
   }, [isVisible]);
 
-  // Immediate refresh when new data is added to buffer (very aggressive)
+  // Refresh when new data is added to buffer (less aggressive)
   useEffect(() => {
     if (!isVisible) return;
     
     const checkForNewData = setInterval(() => {
       const currentBufferSize = heatmapTracker.getBufferSize();
-      if (currentBufferSize > 0) {
-        console.log(`⚡ Immediate refresh due to ${currentBufferSize} new events in buffer`);
+      if (currentBufferSize >= 3) { // Only refresh when 3+ new events (was 1+)
+        console.log(`⚡ Refresh due to ${currentBufferSize} new events in buffer`);
         loadHeatmapData();
       }
-    }, 500); // Check every 500ms for ultra-responsive feedback
+    }, 2000); // Check every 2 seconds instead of 500ms
     
     return () => clearInterval(checkForNewData);
   }, [isVisible]);

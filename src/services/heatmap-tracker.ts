@@ -367,9 +367,9 @@ class HeatmapTracker {
     }
   }
 
-  public async getHeatmapData(pageUrl?: string, eventTypes?: HeatmapDataPoint['eventType'][], timeFilterHours: number = 24): Promise<HeatmapDataPoint[]> {
+  public async getHeatmapData(pageUrl?: string, eventTypes?: HeatmapDataPoint['eventType'][], timeFilterHours: number = 168): Promise<HeatmapDataPoint[]> { // 168 hours = 1 week
     try {
-      // Calculate time threshold (default: last 1 hour)
+      // Calculate time threshold (default: last 1 week)
       const timeThreshold = new Date(Date.now() - (timeFilterHours * 60 * 60 * 1000)).toISOString();
       
       let query = supabase
