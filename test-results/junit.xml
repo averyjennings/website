@@ -1,0 +1,59 @@
+<testsuites id="" name="" tests="1" failures="1" skipped="0" errors="0" time="26.347399">
+<testsuite name="heatmap.spec.ts" timestamp="2025-07-26T05:55:27.980Z" hostname="chromium-desktop" tests="1" failures="1" skipped="0" time="0.571" errors="0">
+<testcase name="🚀 Phase 6: Heatmap Onboarding Experience › should show beautiful onboarding modal for first-time visitors" classname="heatmap.spec.ts" time="0.571">
+<failure message="heatmap.spec.ts:107:3 should show beautiful onboarding modal for first-time visitors" type="FAILURE">
+<![CDATA[  [chromium-desktop] › heatmap.spec.ts:107:3 › 🚀 Phase 6: Heatmap Onboarding Experience › should show beautiful onboarding modal for first-time visitors 
+
+    Error: page.evaluate: SecurityError: Failed to read the 'localStorage' property from 'Window': Access is denied for this document.
+        at UtilityScript.evaluate (<anonymous>:293:16)
+        at UtilityScript.<anonymous> (<anonymous>:1:44)
+        at UtilityScript.evaluate (<anonymous>:293:16)
+        at UtilityScript.<anonymous> (<anonymous>:1:44)
+        at HeatmapTestUtils.clearHeatmapStorage (C:\Users\avery\projects\website\tests\heatmap.spec.ts:40:21)
+        at C:\Users\avery\projects\website\tests\heatmap.spec.ts:104:17
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    ..\test-results\artifacts\heatmap-🚀-Phase-6-Heatmap-619d3-dal-for-first-time-visitors-chromium-desktop\test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Retry #1 ───────────────────────────────────────────────────────────────────────────────────────
+
+    Error: page.evaluate: SecurityError: Failed to read the 'localStorage' property from 'Window': Access is denied for this document.
+        at UtilityScript.evaluate (<anonymous>:293:16)
+        at UtilityScript.<anonymous> (<anonymous>:1:44)
+        at UtilityScript.evaluate (<anonymous>:293:16)
+        at UtilityScript.<anonymous> (<anonymous>:1:44)
+        at HeatmapTestUtils.clearHeatmapStorage (C:\Users\avery\projects\website\tests\heatmap.spec.ts:40:21)
+        at C:\Users\avery\projects\website\tests\heatmap.spec.ts:104:17
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    ..\test-results\artifacts\heatmap-🚀-Phase-6-Heatmap-619d3-dal-for-first-time-visitors-chromium-desktop-retry1\test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    attachment #2: video (video/webm) ──────────────────────────────────────────────────────────────
+    ..\test-results\artifacts\heatmap-🚀-Phase-6-Heatmap-619d3-dal-for-first-time-visitors-chromium-desktop-retry1\video.webm
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    ..\test-results\artifacts\heatmap-🚀-Phase-6-Heatmap-619d3-dal-for-first-time-visitors-chromium-desktop-retry1\trace.zip
+    Usage:
+
+        npx playwright show-trace ..\test-results\artifacts\heatmap-🚀-Phase-6-Heatmap-619d3-dal-for-first-time-visitors-chromium-desktop-retry1\trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+]]>
+</failure>
+<system-out>
+<![CDATA[
+[[ATTACHMENT|artifacts\heatmap-🚀-Phase-6-Heatmap-619d3-dal-for-first-time-visitors-chromium-desktop\test-failed-1.png]]
+
+[[ATTACHMENT|artifacts\heatmap-🚀-Phase-6-Heatmap-619d3-dal-for-first-time-visitors-chromium-desktop-retry1\test-failed-1.png]]
+
+[[ATTACHMENT|artifacts\heatmap-🚀-Phase-6-Heatmap-619d3-dal-for-first-time-visitors-chromium-desktop-retry1\video.webm]]
+
+[[ATTACHMENT|artifacts\heatmap-🚀-Phase-6-Heatmap-619d3-dal-for-first-time-visitors-chromium-desktop-retry1\trace.zip]]
+]]>
+</system-out>
+</testcase>
+</testsuite>
+</testsuites>

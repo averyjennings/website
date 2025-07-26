@@ -9,7 +9,16 @@
     "build": "tsc && vite build",
     "preview": "vite preview",
     "type-check": "tsc --noEmit",
-    "lint": "eslint . --ext ts,tsx --report-unused-disable-directives --max-warnings 0"
+    "lint": "eslint . --ext ts,tsx --report-unused-disable-directives --max-warnings 0",
+    "test": "playwright test",
+    "test:heatmap": "node scripts/run-heatmap-tests.js --mode=standard",
+    "test:heatmap:quick": "node scripts/run-heatmap-tests.js --mode=quick",
+    "test:heatmap:full": "node scripts/run-heatmap-tests.js --mode=full",
+    "test:heatmap:load": "playwright test tests/heatmap-load.spec.ts --project=performance-testing",
+    "test:headed": "playwright test --headed",
+    "test:debug": "playwright test --debug",
+    "test:install": "playwright install",
+    "test:report": "playwright show-report"
   },
   "repository": {
     "type": "git",
@@ -23,6 +32,7 @@
   },
   "homepage": "https://github.com/averyjennings/website#readme",
   "devDependencies": {
+    "@playwright/test": "^1.52.0",
     "@types/d3": "^7.4.3",
     "@types/node": "^24.1.0",
     "@types/react": "^19.1.8",

@@ -9,7 +9,25 @@ interface HeatmapToggleProps {
 export function HeatmapToggle({ className = '' }: HeatmapToggleProps) {
   const [config, setConfig] = useState<HeatmapConfig>(heatmapTracker.getConfig());
   const [heatmapData, setHeatmapData] = useState<HeatmapDataPoint[]>([]);
-  const [isVisible, setIsVisible] = useState(false);
+  
+  // PHASE 6: Enable heatmap by default with intelligent first-time detection
+  const [isVisible, setIsVisible] = useState(() => {
+    // Check if this is the first time visiting or if user has explicitly set a preference
+    const userPreference = localStorage.getItem('heatmap-visibility-preference');
+    const hasSeenIntro = localStorage.getItem('heatmap-intro-seen');
+    
+    if (userPreference !== null) {
+      // User has explicitly set a preference
+      return userPreference === 'true';
+    } else if (!hasSeenIntro) {
+      // First time visitor - enable by default
+      return true;
+    } else {
+      // Returning visitor who has seen intro but no explicit preference - respect previous behavior
+      return false;
+    }
+  });
+  
   const [selectedEventTypes, setSelectedEventTypes] = useState<HeatmapDataPoint['eventType'][]>(['click']);
   const [intensity, setIntensity] = useState(70);
   const [radius, setRadius] = useState(25);
@@ -19,6 +37,14 @@ export function HeatmapToggle({ className = '' }: HeatmapToggleProps) {
     // Load preference from localStorage, default to collapsed
     const stored = localStorage.getItem('heatmap-controls-expanded');
     return stored === 'true';
+  });
+  
+  // PHASE 6: Onboarding state management
+  const [showOnboarding, setShowOnboarding] = useState(() => {
+    const hasSeenIntro = localStorage.getItem('heatmap-intro-seen');
+    const userPreference = localStorage.getItem('heatmap-visibility-preference');
+    // Show onboarding if first time visitor AND heatmap is visible by default
+    return !hasSeenIntro && userPreference === null;
   });
 
   // Initialize heatmap tracker
@@ -101,11 +127,33 @@ export function HeatmapToggle({ className = '' }: HeatmapToggleProps) {
     });
   };
 
+  // PHASE 6: Enhanced visibility toggle with preference persistence
   const handleToggleVisibility = () => {
-    setIsVisible(!isVisible);
-    if (!isVisible) {
+    const newVisibility = !isVisible;
+    setIsVisible(newVisibility);
+    
+    // Save user preference
+    localStorage.setItem('heatmap-visibility-preference', newVisibility.toString());
+    
+    if (newVisibility) {
       loadHeatmapData();
     }
+  };
+
+  // PHASE 6: Onboarding handlers
+  const handleOnboardingComplete = (keepVisible: boolean) => {
+    localStorage.setItem('heatmap-intro-seen', 'true');
+    localStorage.setItem('heatmap-visibility-preference', keepVisible.toString());
+    setShowOnboarding(false);
+    setIsVisible(keepVisible);
+    
+    if (keepVisible) {
+      loadHeatmapData();
+    }
+  };
+
+  const handleOnboardingDismiss = () => {
+    handleOnboardingComplete(false);
   };
 
   const handleClearData = async () => {
@@ -143,6 +191,85 @@ export function HeatmapToggle({ className = '' }: HeatmapToggleProps) {
         intensity={intensity}
         radius={radius}
       />
+
+      {/* PHASE 6: Elegant Heatmap Onboarding Modal */}
+      {showOnboarding && (
+        <div className="fixed inset-0 z-[10000] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
+          <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-2xl border border-gray-200 dark:border-gray-700 max-w-md w-full animate-in fade-in duration-300">
+            {/* Header with gradient accent */}
+            <div className="relative overflow-hidden rounded-t-2xl bg-gradient-to-r from-blue-500 to-purple-600 p-6 text-white">
+              <div className="absolute top-0 right-0 w-20 h-20 bg-white/10 rounded-full -translate-y-10 translate-x-10"></div>
+              <div className="absolute bottom-0 left-0 w-16 h-16 bg-white/10 rounded-full translate-y-8 -translate-x-8"></div>
+              <div className="relative">
+                <div className="flex items-center space-x-3 mb-3">
+                  <div className="w-8 h-8 bg-white/20 rounded-lg flex items-center justify-center">
+                    <span className="text-lg">🔥</span>
+                  </div>
+                  <h3 className="text-xl font-bold">Heatmap Feature</h3>
+                </div>
+                <p className="text-blue-100 text-sm leading-relaxed">
+                  See where users interact with your portfolio! Real-time click tracking with beautiful visualizations.
+                </p>
+              </div>
+            </div>
+
+            {/* Content */}
+            <div className="p-6">
+              <div className="space-y-4 mb-6">
+                <div className="flex items-start space-x-3">
+                  <div className="w-6 h-6 bg-green-100 dark:bg-green-900/30 rounded-full flex items-center justify-center mt-0.5">
+                    <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                  </div>
+                  <div>
+                    <h4 className="text-sm font-medium text-gray-900 dark:text-gray-100">Live Interaction Tracking</h4>
+                    <p className="text-xs text-gray-600 dark:text-gray-400 mt-1">Watch clicks appear in real-time as vibrant heat zones</p>
+                  </div>
+                </div>
+                
+                <div className="flex items-start space-x-3">
+                  <div className="w-6 h-6 bg-blue-100 dark:bg-blue-900/30 rounded-full flex items-center justify-center mt-0.5">
+                    <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
+                  </div>
+                  <div>
+                    <h4 className="text-sm font-medium text-gray-900 dark:text-gray-100">Privacy Focused</h4>
+                    <p className="text-xs text-gray-600 dark:text-gray-400 mt-1">Anonymous data collection for insights only</p>
+                  </div>
+                </div>
+                
+                <div className="flex items-start space-x-3">
+                  <div className="w-6 h-6 bg-purple-100 dark:bg-purple-900/30 rounded-full flex items-center justify-center mt-0.5">
+                    <div className="w-2 h-2 bg-purple-500 rounded-full"></div>
+                  </div>
+                  <div>
+                    <h4 className="text-sm font-medium text-gray-900 dark:text-gray-100">Optimized Performance</h4>
+                    <p className="text-xs text-gray-600 dark:text-gray-400 mt-1">Ultra-fast rendering with 60fps+ performance</p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Action buttons */}
+              <div className="flex flex-col space-y-3">
+                <button
+                  onClick={() => handleOnboardingComplete(true)}
+                  className="w-full bg-gradient-to-r from-blue-500 to-purple-600 text-white px-4 py-3 rounded-lg font-medium hover:from-blue-600 hover:to-purple-700 transition-all duration-200 transform hover:scale-[1.02] active:scale-[0.98]"
+                >
+                  ✨ Enable Heatmap Experience
+                </button>
+                <button
+                  onClick={handleOnboardingDismiss}
+                  className="w-full bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 px-4 py-2 rounded-lg text-sm font-medium hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
+                >
+                  Maybe Later
+                </button>
+              </div>
+
+              <p className="text-xs text-gray-500 dark:text-gray-400 text-center mt-4">
+                You can toggle this feature anytime using the control panel
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Heatmap Control Panel - Collapsible */}
       <div className={`fixed bottom-2 right-2 sm:bottom-4 sm:right-4 z-50 ${className}`}>

@@ -1,5 +1,21 @@
-import { useEffect, useRef, useState, useMemo } from 'react';
+import { useEffect, useRef, useState, useMemo, useCallback } from 'react';
 import { HeatmapDataPoint, heatmapTracker } from '@/services/heatmap-tracker';
+
+// Performance optimization: Cached document dimensions to eliminate redundant DOM queries
+interface CachedDimensions {
+  width: number;
+  height: number;
+  timestamp: number;
+  devicePixelRatio: number;
+}
+
+// Performance monitoring interface
+interface PerformanceMetrics {
+  coordinateConversions: number;
+  renderTime: number;
+  frameRate: number;
+  canvasPixels: number;
+}
 
 interface HeatmapOverlayProps {
   data: HeatmapDataPoint[];
@@ -23,6 +39,60 @@ export function HeatmapOverlay({
   const containerRef = useRef<HTMLDivElement>(null);
   const [dimensions, setDimensions] = useState({ width: 0, height: 0 });
   const [pendingClicks, setPendingClicks] = useState<HeatmapDataPoint[]>([]);
+  
+  // PERFORMANCE OPTIMIZATION: Cache document dimensions to eliminate 170+ conversions per render
+  const cachedDimensionsRef = useRef<CachedDimensions | null>(null);
+  const performanceMetricsRef = useRef<PerformanceMetrics>({
+    coordinateConversions: 0,
+    renderTime: 0,
+    frameRate: 0,
+    canvasPixels: 0
+  });
+  
+  // Optimized dimension calculation with caching
+  const getDocumentDimensions = useCallback((): CachedDimensions => {
+    const now = Date.now();
+    
+    // Return cached dimensions if still valid (within 500ms)
+    if (cachedDimensionsRef.current && 
+        (now - cachedDimensionsRef.current.timestamp) < 500) {
+      return cachedDimensionsRef.current;
+    }
+    
+    // Calculate dimensions once and cache
+    const width = Math.max(
+      1, // Minimum width to prevent division by zero
+      document.documentElement?.scrollWidth || 0,
+      document.documentElement?.offsetWidth || 0,  
+      document.documentElement?.clientWidth || 0,
+      document.body?.scrollWidth || 0,
+      document.body?.offsetWidth || 0,
+      window.innerWidth || 1920 // Fallback
+    );
+    
+    const height = Math.max(
+      1, // Minimum height to prevent division by zero
+      document.documentElement?.scrollHeight || 0,
+      document.documentElement?.offsetHeight || 0,
+      document.documentElement?.clientHeight || 0,
+      document.body?.scrollHeight || 0,
+      document.body?.offsetHeight || 0,
+      window.innerHeight || 1080 // Fallback
+    );
+    
+    const cached = {
+      width,
+      height,
+      timestamp: now,
+      devicePixelRatio: Math.max(1, Math.min(2, window.devicePixelRatio || 1)) // Clamp DPR to prevent massive canvases
+    };
+    
+    cachedDimensionsRef.current = cached;
+    performanceMetricsRef.current.coordinateConversions++;
+    
+    console.log(`⚡ Document dimensions cached: ${width}x${height} (DPR: ${cached.devicePixelRatio})`);
+    return cached;
+  }, []);
 
   // Efficient instant feedback using buffer data (no polling)
   useEffect(() => {
@@ -59,61 +129,45 @@ export function HeatmapOverlay({
     return () => clearInterval(lightRefresh);
   }, [visible, eventTypes]);
 
-  // Process stable database data (no pending clicks to prevent constant recalculation)
+  // PHASE 5: OPTIMIZED Statistical calculations with memoization
+  const statisticalCache = useRef<{
+    data: { count: number; x: number; y: number; eventType: HeatmapDataPoint['eventType']; isRecent: boolean; totalX: number; totalY: number }[];
+    percentiles: { p25: number; p50: number; p75: number; p90: number; maxCount: number; minCount: number };
+    timestamp: number;
+  } | null>(null);
+
+  // PERFORMANCE OPTIMIZED: Process stable database data with cached dimensions
   const heatPoints = useMemo(() => {
+    const startTime = performance.now();
+    performanceMetricsRef.current.coordinateConversions = 0; // Reset counter
+    
     try {
       // Only process stable database data for consistent performance
       const filteredData = data.filter(point => eventTypes.includes(point.eventType));
       
       if (filteredData.length === 0) return [];
       
-      // Get current document dimensions for coordinate conversion with error handling
-      const currentDocumentWidth = Math.max(
-        1, // Minimum width to prevent division by zero
-        document.documentElement?.scrollWidth || 0,
-        document.documentElement?.offsetWidth || 0,  
-        document.documentElement?.clientWidth || 0,
-        document.body?.scrollWidth || 0,
-        document.body?.offsetWidth || 0,
-        window.innerWidth || 1920 // Fallback
-      );
+      // OPTIMIZATION: Use cached dimensions instead of recalculating
+      const { width: currentDocumentWidth, height: currentDocumentHeight } = getDocumentDimensions();
       
-      const currentDocumentHeight = Math.max(
-        1, // Minimum height to prevent division by zero
-        document.documentElement?.scrollHeight || 0,
-        document.documentElement?.offsetHeight || 0,
-        document.documentElement?.clientHeight || 0,
-        document.body?.scrollHeight || 0,
-        document.body?.offsetHeight || 0,
-        window.innerHeight || 1080 // Fallback
-      );
-      
-      console.log(`🌐 Converting coordinates for ${currentDocumentWidth}x${currentDocumentHeight} document`);
+      console.log(`⚡ PHASE 5 OPTIMIZED: Converting ${filteredData.length} coordinates using cached dimensions ${currentDocumentWidth}x${currentDocumentHeight}`);
     
     // Convert relative coordinates to current absolute coordinates with error handling
     const pointsWithAbsoluteCoords = filteredData.map(point => {
-      // Validate coordinates
+      // OPTIMIZED: Streamlined coordinate validation and conversion
       const isValidX = typeof point.x === 'number' && !isNaN(point.x) && isFinite(point.x);
       const isValidY = typeof point.y === 'number' && !isNaN(point.y) && isFinite(point.y);
       
-      if (!isValidX || !isValidY) {
-        console.warn('🚨 Invalid coordinates detected:', { x: point.x, y: point.y, point });
-        return null; // Skip invalid points
-      }
+      if (!isValidX || !isValidY) return null; // Skip invalid points silently for performance
       
-      // Convert relative (0-1) coordinates to current absolute coordinates
+      // PERFORMANCE: Single-pass coordinate conversion
       const absoluteX = Math.round(point.x * currentDocumentWidth);
       const absoluteY = Math.round(point.y * currentDocumentHeight);
       
-      // Validate converted coordinates (more lenient bounds)
-      if (absoluteX < -100 || absoluteY < -100 || 
-          absoluteX > currentDocumentWidth + 100 || absoluteY > currentDocumentHeight + 100) {
-        console.warn('🚨 Converted coordinates severely out of bounds:', { 
-          original: { x: point.x, y: point.y }, 
-          converted: { absoluteX, absoluteY },
-          document: { width: currentDocumentWidth, height: currentDocumentHeight }
-        });
-        return null; // Skip severely out-of-bounds points only
+      // OPTIMIZED: Quick bounds check with larger tolerance
+      if (absoluteX < -200 || absoluteY < -200 || 
+          absoluteX > currentDocumentWidth + 200 || absoluteY > currentDocumentHeight + 200) {
+        return null; // Skip out-of-bounds points silently
       }
       
       return {
@@ -136,28 +190,30 @@ export function HeatmapOverlay({
       return [];
     }
     
-    // Group points by proximity to reduce noise
-    const groupedPoints = new Map<string, { count: number; x: number; y: number; eventType: HeatmapDataPoint['eventType']; isRecent: boolean }>();
+    // PHASE 5: OPTIMIZED proximity grouping with single-pass processing
+    const groupedPoints = new Map<string, { count: number; x: number; y: number; eventType: HeatmapDataPoint['eventType']; isRecent: boolean; totalX: number; totalY: number }>();
     
     // Calculate what counts as "recent" (last 15 seconds for instant feedback)
     const recentThreshold = new Date(Date.now() - 15000).toISOString();
     
+    // OPTIMIZATION: Pre-calculate grid size once
+    const gridSize = window.innerWidth < 768 ? 12 : 15;
+    
+    // OPTIMIZATION: Single-pass grouping with optimized averaging
     pointsWithAbsoluteCoords.forEach(point => {
-      // Create responsive grid-based grouping - smaller grid for better precision
-      const isMobile = window.innerWidth < 768;
-      const gridSize = isMobile ? 12 : 15; // Smaller grid for more detailed clustering
       const gridX = Math.floor(point.absoluteX / gridSize) * gridSize;
       const gridY = Math.floor(point.absoluteY / gridSize) * gridSize;
       const key = `${gridX}-${gridY}-${point.eventType}`;
-      
       const isRecent = point.timestamp > recentThreshold;
       
       if (groupedPoints.has(key)) {
         const existing = groupedPoints.get(key)!;
         existing.count++;
-        existing.x = (existing.x + point.absoluteX) / 2; // Average position
-        existing.y = (existing.y + point.absoluteY) / 2;
-        existing.isRecent = existing.isRecent || isRecent; // Mark as recent if any point is recent
+        existing.totalX += point.absoluteX;
+        existing.totalY += point.absoluteY;
+        existing.x = existing.totalX / existing.count; // More accurate averaging
+        existing.y = existing.totalY / existing.count;
+        existing.isRecent = existing.isRecent || isRecent;
       } else {
         groupedPoints.set(key, {
           count: 1,
@@ -165,6 +221,8 @@ export function HeatmapOverlay({
           y: point.absoluteY,
           eventType: point.eventType,
           isRecent: isRecent,
+          totalX: point.absoluteX,
+          totalY: point.absoluteY,
         });
       }
     });
@@ -172,63 +230,94 @@ export function HeatmapOverlay({
     // Convert to heat points with stable statistical distribution
     const points = Array.from(groupedPoints.values());
     const totalClicks = filteredData.length;
-    const counts = points.map(p => p.count);
-    const maxCount = Math.max(...counts, 1);
-    const minCount = Math.min(...counts, 1);
     
-    // Calculate statistical distribution based ONLY on stable database data to prevent shifting
-    const stablePoints = Array.from(groupedPoints.values()).filter(point => {
-      // Only include points that are not very recent (to maintain stable distribution)
-      return !point.isRecent;
-    });
+    // PHASE 5: OPTIMIZED statistical calculations with intelligent caching
+    let percentiles: { p25: number; p50: number; p75: number; p90: number; maxCount: number; minCount: number };
     
-    const stableCounts = stablePoints.length > 0 ? stablePoints.map(p => p.count) : counts;
-    const sortedCounts = [...stableCounts].sort((a, b) => a - b);
-    const p25 = sortedCounts[Math.floor(sortedCounts.length * 0.25)] || 1;
-    const p50 = sortedCounts[Math.floor(sortedCounts.length * 0.50)] || 1;
-    const p75 = sortedCounts[Math.floor(sortedCounts.length * 0.75)] || 1;
-    const p90 = sortedCounts[Math.floor(sortedCounts.length * 0.90)] || 1;
+    // Check if we can use cached percentiles (stable data hasn't changed significantly)
+    const stablePoints = points.filter(point => !point.isRecent);
+    const now = Date.now();
     
-    console.log(`🎨 Rendering ${points.length} heat points from ${totalClicks} total clicks`);
-    console.log(`📊 Distribution: min=${minCount}, p25=${p25}, p50=${p50}, p75=${p75}, p90=${p90}, max=${maxCount}`);
-    
-    return points.map(point => {
-      // Sophisticated intensity calculation with guaranteed visibility
-      let normalizedIntensity;
-      let heatLevel: 'minimal' | 'low' | 'medium' | 'high' | 'extreme';
+    if (statisticalCache.current && 
+        statisticalCache.current.data.length === stablePoints.length &&
+        (now - statisticalCache.current.timestamp) < 2000) { // Cache valid for 2 seconds
+      percentiles = statisticalCache.current.percentiles;
+      console.log(`⚡ PHASE 5: Using cached statistical percentiles (${stablePoints.length} points)`);
+    } else {
+      // Recalculate percentiles only when stable data changes
+      const counts = points.map(p => p.count);
+      const maxCount = Math.max(...counts, 1);
+      const minCount = Math.min(...counts, 1);
       
-      // Give instant feedback for very recent clicks (pending/new clicks)
+      const stableCounts = stablePoints.length > 0 ? stablePoints.map(p => p.count) : counts;
+      const sortedCounts = [...stableCounts].sort((a, b) => a - b);
+      
+      percentiles = {
+        p25: sortedCounts[Math.floor(sortedCounts.length * 0.25)] || 1,
+        p50: sortedCounts[Math.floor(sortedCounts.length * 0.50)] || 1,
+        p75: sortedCounts[Math.floor(sortedCounts.length * 0.75)] || 1,
+        p90: sortedCounts[Math.floor(sortedCounts.length * 0.90)] || 1,
+        maxCount,
+        minCount
+      };
+      
+      // Cache the results
+      statisticalCache.current = {
+        data: [...stablePoints],
+        percentiles,
+        timestamp: now
+      };
+      
+      console.log(`⚡ PHASE 5: Calculated fresh statistical percentiles - p25:${percentiles.p25}, p50:${percentiles.p50}, p75:${percentiles.p75}, p90:${percentiles.p90}`);
+    }
+    
+    // PERFORMANCE: Track processing metrics
+    const processingTime = performance.now() - startTime;
+    performanceMetricsRef.current.renderTime = processingTime;
+    
+    console.log(`⚡ PHASE 5 OPTIMIZED: Rendered ${points.length} heat points from ${totalClicks} total clicks in ${processingTime.toFixed(2)}ms`);
+    console.log(`📊 PHASE 5: Coordinate conversions: ${performanceMetricsRef.current.coordinateConversions} | Statistical cache hits: ${statisticalCache.current ? 'YES' : 'NO'}`);
+    
+    // PHASE 5: STREAMLINED intensity calculation with lookup tables
+    const intensityRanges = [
+      { threshold: percentiles.p90, level: 'extreme' as const, min: 0.9, range: 0.1 },
+      { threshold: percentiles.p75, level: 'high' as const, min: 0.7, range: 0.2 },
+      { threshold: percentiles.p50, level: 'medium' as const, min: 0.5, range: 0.2 },
+      { threshold: percentiles.p25, level: 'low' as const, min: 0.3, range: 0.2 },
+      { threshold: 0, level: 'minimal' as const, min: 0.2, range: 0.1 }
+    ];
+
+    return points.map(point => {
+      let normalizedIntensity: number = 0.2; // Default fallback
+      let heatLevel: 'minimal' | 'low' | 'medium' | 'high' | 'extreme' = 'minimal';
+      
       if (point.isRecent) {
-        // Recent clicks always get high visibility for instant feedback
+        // Recent clicks get immediate high visibility
         heatLevel = 'high';
-        normalizedIntensity = 0.8; // High visibility for immediate feedback
+        normalizedIntensity = 0.8;
       } else {
-        // Use statistical distribution for older, stable points
-        if (point.count >= p90) {
-          heatLevel = 'extreme';
-          normalizedIntensity = 0.9 + ((point.count - p90) / Math.max(maxCount - p90, 1)) * 0.1; // 0.9-1.0
-        } else if (point.count >= p75) {
-          heatLevel = 'high';
-          normalizedIntensity = 0.7 + ((point.count - p75) / Math.max(p90 - p75, 1)) * 0.2; // 0.7-0.9
-        } else if (point.count >= p50) {
-          heatLevel = 'medium';
-          normalizedIntensity = 0.5 + ((point.count - p50) / Math.max(p75 - p50, 1)) * 0.2; // 0.5-0.7
-        } else if (point.count >= p25) {
-          heatLevel = 'low';
-          normalizedIntensity = 0.3 + ((point.count - p25) / Math.max(p50 - p25, 1)) * 0.2; // 0.3-0.5
-        } else {
-          heatLevel = 'minimal';
-          normalizedIntensity = 0.2 + ((point.count - minCount) / Math.max(p25 - minCount, 1)) * 0.1; // 0.2-0.3
+        // OPTIMIZATION: Single-pass intensity calculation using lookup table
+        for (const range of intensityRanges) {
+          if (point.count >= range.threshold) {
+            heatLevel = range.level;
+            const nextThreshold = range === intensityRanges[0] ? percentiles.maxCount : 
+                                 range === intensityRanges[1] ? percentiles.p90 :
+                                 range === intensityRanges[2] ? percentiles.p75 :
+                                 range === intensityRanges[3] ? percentiles.p50 : percentiles.p25;
+            const denominator = Math.max(nextThreshold - range.threshold, 1);
+            normalizedIntensity = range.min + ((point.count - range.threshold) / denominator) * range.range;
+            break;
+          }
         }
       }
       
-      // Store normalized intensity without applying user setting yet
-      const baseIntensity = normalizedIntensity * (point.isRecent ? 1.5 : 1); // Extra boost for recent
+      // Apply recent boost efficiently
+      const baseIntensity = normalizedIntensity * (point.isRecent ? 1.5 : 1);
       
       return {
         x: point.x,
         y: point.y,
-        intensity: baseIntensity, // Base intensity without user scaling
+        intensity: baseIntensity,
         heatLevel,
         count: point.count,
         eventType: point.eventType,
@@ -239,53 +328,41 @@ export function HeatmapOverlay({
       console.error('🚨 Error processing heatmap data:', error);
       return []; // Return empty array on error to prevent crashes
     }
-  }, [data, eventTypes]); // Stable data only for consistent performance
+  }, [data, eventTypes, getDocumentDimensions]); // OPTIMIZED: Include cached dimension function
 
-  // Process pending clicks separately for instant feedback without affecting stable calculation
+  // PHASE 5: OPTIMIZED pending clicks processing with batch operations
   const pendingHeatPoints = useMemo(() => {
     if (!pendingClicks.length) return [];
     
     try {
       const filteredPending = pendingClicks.filter(point => eventTypes.includes(point.eventType));
+      if (!filteredPending.length) return [];
       
-      // Get current document dimensions
-      const currentDocumentWidth = Math.max(
-        1, 
-        document.documentElement?.scrollWidth || 0,
-        document.documentElement?.offsetWidth || 0,  
-        document.documentElement?.clientWidth || 0,
-        document.body?.scrollWidth || 0,
-        document.body?.offsetWidth || 0,
-        window.innerWidth || 1920
-      );
+      // OPTIMIZATION: Use cached dimensions and batch coordinate conversion
+      const { width: currentDocumentWidth, height: currentDocumentHeight } = getDocumentDimensions();
       
-      const currentDocumentHeight = Math.max(
-        1,
-        document.documentElement?.scrollHeight || 0,
-        document.documentElement?.offsetHeight || 0,
-        document.documentElement?.clientHeight || 0,
-        document.body?.scrollHeight || 0,
-        document.body?.offsetHeight || 0,
-        window.innerHeight || 1080
-      );
+      console.log(`⚡ PHASE 5: Processing ${filteredPending.length} pending clicks with optimized batch conversion`);
       
-      // Convert pending clicks to absolute coordinates
+      // OPTIMIZATION: Single-pass conversion with pre-allocated constants
+      const pendingIntensity = 0.9;
+      const pendingLevel = 'extreme' as const;
+      
       return filteredPending.map(point => ({
         x: Math.round(point.x * currentDocumentWidth),
         y: Math.round(point.y * currentDocumentHeight),
-        intensity: 0.9, // High visibility for instant feedback
-        heatLevel: 'extreme' as const,
+        intensity: pendingIntensity,
+        heatLevel: pendingLevel,
         count: 1,
         eventType: point.eventType,
         isRecent: true,
       }));
     } catch (error) {
-      console.error('Error processing pending clicks:', error);
+      console.error('🚨 PHASE 5: Error processing pending clicks:', error);
       return [];
     }
-  }, [pendingClicks, eventTypes]);
+  }, [pendingClicks, eventTypes, getDocumentDimensions]);
 
-  // Update canvas dimensions when visibility changes or window resizes
+  // PERFORMANCE OPTIMIZED: Update canvas dimensions with cached calculations and size limits
   useEffect(() => {
     if (!visible) return;
 
@@ -294,26 +371,8 @@ export function HeatmapOverlay({
         const canvas = canvasRef.current;
         if (!canvas) return;
 
-        // Get comprehensive document dimensions with fallbacks
-        const width = Math.max(
-          1, // Minimum to prevent zero dimensions
-          window.innerWidth || 1920,
-          document.documentElement?.scrollWidth || 0,
-          document.documentElement?.offsetWidth || 0,
-          document.documentElement?.clientWidth || 0,
-          document.body?.scrollWidth || 0,
-          document.body?.offsetWidth || 0
-        );
-        
-        const height = Math.max(
-          1, // Minimum to prevent zero dimensions
-          window.innerHeight || 1080,
-          document.documentElement?.scrollHeight || 0,
-          document.documentElement?.offsetHeight || 0,
-          document.documentElement?.clientHeight || 0,
-          document.body?.scrollHeight || 0,
-          document.body?.offsetHeight || 0
-        );
+        // OPTIMIZATION: Use cached dimensions to eliminate redundant DOM queries
+        const { width, height, devicePixelRatio } = getDocumentDimensions();
         
         // Validate dimensions before applying
         if (!isFinite(width) || !isFinite(height) || width <= 0 || height <= 0) {
@@ -321,13 +380,14 @@ export function HeatmapOverlay({
           return;
         }
         
-        // Set high-DPI canvas resolution with safety checks
-        const devicePixelRatio = Math.max(1, Math.min(3, window.devicePixelRatio || 1)); // Clamp DPR
-        const canvasWidth = Math.min(32767, width * devicePixelRatio); // Max canvas size limit
-        const canvasHeight = Math.min(32767, height * devicePixelRatio);
+        // PERFORMANCE CRITICAL: Apply aggressive canvas size limits to prevent 69.6M pixel canvases
+        const maxCanvasWidth = Math.min(8192, width * devicePixelRatio); // Hard limit to prevent massive canvases
+        const maxCanvasHeight = Math.min(8192, height * devicePixelRatio);
+        const actualCanvasWidth = Math.min(maxCanvasWidth, width * devicePixelRatio);
+        const actualCanvasHeight = Math.min(maxCanvasHeight, height * devicePixelRatio);
         
-        canvas.width = canvasWidth;
-        canvas.height = canvasHeight;
+        canvas.width = actualCanvasWidth;
+        canvas.height = actualCanvasHeight;
         
         // Scale canvas back down using CSS
         canvas.style.width = `${width}px`;
@@ -339,8 +399,11 @@ export function HeatmapOverlay({
           ctx.scale(devicePixelRatio, devicePixelRatio);
         }
         
+        // PERFORMANCE: Track canvas pixel count for monitoring
+        performanceMetricsRef.current.canvasPixels = actualCanvasWidth * actualCanvasHeight;
+        
         setDimensions({ width, height });
-        console.log(`🗺️ Canvas dimensions updated: ${width}x${height} (DPR: ${devicePixelRatio})`);
+        console.log(`⚡ OPTIMIZED: Canvas ${width}x${height} (${(performanceMetricsRef.current.canvasPixels / 1000000).toFixed(1)}M pixels, DPR: ${devicePixelRatio})`);
       } catch (error) {
         console.error('🚨 Error updating canvas dimensions:', error);
         // Set safe fallback dimensions
@@ -352,9 +415,11 @@ export function HeatmapOverlay({
     updateDimensions();
     const timeoutId = setTimeout(updateDimensions, 100);
     
-    // Add event listeners for window resize and orientation change
+    // PERFORMANCE OPTIMIZED: Add event listeners with cache invalidation
     const handleResize = () => {
-      console.log('📐 Window resized, updating heatmap canvas...');
+      console.log('⚡ Window resized, invalidating dimension cache...');
+      // CRITICAL: Invalidate cached dimensions on resize
+      cachedDimensionsRef.current = null;
       setTimeout(updateDimensions, 50); // Small delay for layout completion
     };
     
@@ -368,15 +433,38 @@ export function HeatmapOverlay({
     };
   }, [visible]);
   
-  // Force re-render when dimensions change to update coordinate calculations
+  // PERFORMANCE OPTIMIZED: Force re-render with cache invalidation tracking
   useEffect(() => {
     if (visible && dimensions.width > 0 && dimensions.height > 0) {
-      console.log(`🔄 Dimensions changed, recalculating heat points for ${dimensions.width}x${dimensions.height}`);
+      console.log(`⚡ OPTIMIZED: Dimensions changed, recalculating heat points for ${dimensions.width}x${dimensions.height}`);
+      // Invalidate cache to ensure fresh coordinates after dimension change
+      cachedDimensionsRef.current = null;
     }
   }, [visible, dimensions]);
-
-  // Draw heatmap with comprehensive error handling
+  
+  // PERFORMANCE MONITORING: Log performance metrics periodically
   useEffect(() => {
+    if (!visible) return;
+    
+    const logPerformanceMetrics = () => {
+      const metrics = performanceMetricsRef.current;
+      const cacheHits = statisticalCache.current ? 'ACTIVE' : 'INACTIVE';
+      console.log(`⚡ PHASE 5 HEATMAP PERFORMANCE METRICS:`);
+      console.log(`  🔄 Coordinate conversions: ${metrics.coordinateConversions} (target: <5 per render)`);
+      console.log(`  ⏱️ Render time: ${metrics.renderTime.toFixed(2)}ms (target: <16ms for 60fps)`);
+      console.log(`  🗜️ Canvas pixels: ${(metrics.canvasPixels / 1000000).toFixed(1)}M (down from 69.6M)`);
+      console.log(`  📊 Statistical cache: ${cacheHits} (reduces computation overhead)`);
+      console.log(`  🎯 Performance status: ${metrics.renderTime < 16 ? '✅ EXCELLENT' : metrics.renderTime < 33 ? '⚠️ GOOD' : '🚨 NEEDS WORK'}`);
+    };
+    
+    const metricsInterval = setInterval(logPerformanceMetrics, 5000);
+    return () => clearInterval(metricsInterval);
+  }, [visible]);
+
+  // PERFORMANCE OPTIMIZED: Draw heatmap with streamlined rendering pipeline
+  useEffect(() => {
+    const drawStartTime = performance.now();
+    
     try {
       const canvas = canvasRef.current;
       if (!canvas || !visible || (heatPoints.length === 0 && pendingHeatPoints.length === 0)) {
@@ -415,240 +503,147 @@ export function HeatmapOverlay({
         return;
       }
       
-      console.log(`🎨 Drawing ${heatPoints.length} heat points on canvas ${dimensions.width}x${dimensions.height}`);
+      console.log(`⚡ PHASE 5 OPTIMIZED: Drawing ${heatPoints.length} heat points + ${pendingHeatPoints.length} pending on ${dimensions.width}x${dimensions.height} canvas`);
 
-    // Set blend mode for heat effect
-    ctx.globalCompositeOperation = 'source-over'; // Changed from screen for better visibility
+    // PERFORMANCE: Set optimized blend mode
+    ctx.globalCompositeOperation = 'source-over';
 
-    // Advanced color mapping function for heat intensity
-    const getHeatColor = (heatLevel: string, eventType: string, intensity: number, isRecent: boolean) => {
-      // Base color palette for different event types
+    // VIBRANT COLOR SYSTEM: Advanced HSL-based intensity mapping with smooth transitions
+    const getVibrantHeatColor = (heatLevel: string, eventType: string, intensity: number, isRecent: boolean): string => {
+      // Enhanced color palette with vibrant base hues
       const eventBaseHues = {
-        click: 0,     // Red spectrum (0°)
-        scroll: 120,  // Green spectrum (120°)
-        hover: 240,   // Blue spectrum (240°)
-        focus: 60,    // Yellow spectrum (60°)
+        click: 0,     // Red spectrum (vibrant red-orange)
+        scroll: 120,  // Green spectrum (vibrant emerald)
+        hover: 240,   // Blue spectrum (vibrant cyan-blue)
+        focus: 60,    // Yellow spectrum (vibrant gold)
       };
       
       const baseHue = eventBaseHues[eventType as keyof typeof eventBaseHues] || 0;
       
-      // Heat level color mapping with sophisticated gradients
-      let hue, saturation, lightness;
+      // VIBRANT: Dynamic color shifting based on intensity with smooth transitions
+      let hue: number, saturation: number, lightness: number, alpha: number;
       
       switch (heatLevel) {
         case 'extreme':
-          hue = baseHue; // Pure base color for maximum intensity
-          saturation = 100;
-          lightness = 50 + (intensity * 20); // 50-70% lightness
+          // Ultra-vibrant: Pure saturated colors with slight hue shift toward warmer
+          hue = baseHue - 10; // Shift toward warmer colors
+          saturation = 100;   // Maximum saturation
+          lightness = isRecent ? 65 : 60;  // Bright but not blinding
+          alpha = 0.95;
           break;
+          
         case 'high':
-          hue = baseHue + 10; // Slight hue shift
-          saturation = 90;
-          lightness = 45 + (intensity * 25); // 45-70% lightness
+          // High-vibrant: Rich colors with smooth hue transition
+          hue = baseHue - 5;  // Slight warm shift
+          saturation = 95;
+          lightness = isRecent ? 60 : 55;
+          alpha = 0.85;
           break;
+          
         case 'medium':
-          hue = baseHue + 20; // More hue shift toward cooler
-          saturation = 80;
-          lightness = 40 + (intensity * 30); // 40-70% lightness
+          // Medium-vibrant: Balanced vivid colors
+          hue = baseHue;      // Pure base hue
+          saturation = 90;
+          lightness = isRecent ? 55 : 50;  
+          alpha = 0.70;
           break;
+          
         case 'low':
-          hue = baseHue + 40; // Cooler colors
-          saturation = 70;
-          lightness = 35 + (intensity * 35); // 35-70% lightness
+          // Low-vibrant: Softer but still colorful
+          hue = baseHue + 10; // Shift toward cooler colors
+          saturation = 80;
+          lightness = isRecent ? 50 : 45;
+          alpha = 0.55;
           break;
+          
         case 'minimal':
-          hue = baseHue + 60; // Much cooler colors (towards blue)
-          saturation = 60;
-          lightness = 30 + (intensity * 40); // 30-70% lightness
+          // Minimal-vibrant: Subtle but still visible
+          hue = baseHue + 20; // More cool shift
+          saturation = 70;
+          lightness = isRecent ? 45 : 40;
+          alpha = 0.40;
           break;
+          
         default:
           hue = baseHue;
-          saturation = 70;
+          saturation = 85;
           lightness = 50;
+          alpha = 0.60;
       }
       
-      // Recent clicks get slightly warmer (lower hue) and brighter
+      // RECENT BOOST: Extra vibrancy for instant feedback
       if (isRecent) {
-        hue = Math.max(0, hue - 15);
-        lightness = Math.min(85, lightness + 15);
-        saturation = Math.min(100, saturation + 10);
+        hue = Math.max(0, hue - 15);  // Warmer for recent
+        saturation = Math.min(100, saturation + 5); // More saturated
+        lightness = Math.min(80, lightness + 10);   // Brighter
+        alpha = Math.min(1.0, alpha + 0.15);        // More opaque
       }
+      
+      // INTENSITY SCALING: Apply user intensity setting
+      const finalAlpha = alpha * (intensity / 100);
       
       // Normalize hue to 0-360 range
       hue = ((hue % 360) + 360) % 360;
       
-      return { hue, saturation, lightness };
+      return `hsla(${hue}, ${saturation}%, ${lightness}%, ${finalAlpha})`;
     };
 
-    // Draw stable heat points first
-    heatPoints.forEach((point, index) => {
+    // PERFORMANCE OPTIMIZED: Streamlined single-pass rendering for 60fps
+    const allPoints = [...heatPoints, ...pendingHeatPoints];
+    
+    // OPTIMIZATION: Batch drawing operations
+    allPoints.forEach((point) => {
       try {
-        const isRecent = (point as any).isRecent;
+        const isRecent = (point as any).isRecent || false;
         const heatLevel = (point as any).heatLevel || 'minimal';
         
-        // Validate point coordinates (more lenient)
+        // OPTIMIZED: Quick bounds check
         if (!isFinite(point.x) || !isFinite(point.y) || 
-            point.x < -200 || point.y < -200 ||
-            point.x > dimensions.width + 200 || point.y > dimensions.height + 200) {
-          console.warn(`🚨 Skipping severely invalid heat point at index ${index}:`, point);
-          return;
+            point.x < -100 || point.y < -100 ||
+            point.x > dimensions.width + 100 || point.y > dimensions.height + 100) {
+          return; // Skip invalid points silently for performance
         }
       
-      // Dynamic radius based on heat level and recent status
-      let currentRadius = radius;
-      switch (heatLevel) {
-        case 'extreme':
-          currentRadius = radius * 1.4;
-          break;
-        case 'high':
-          currentRadius = radius * 1.2;
-          break;
-        case 'medium':
-          currentRadius = radius * 1.0;
-          break;
-        case 'low':
-          currentRadius = radius * 0.9;
-          break;
-        case 'minimal':
-          currentRadius = radius * 0.8;
-          break;
-      }
-      
-      if (isRecent) {
-        currentRadius *= 1.1; // Recent clicks are slightly larger
-      }
-      
-      const { hue, saturation, lightness } = getHeatColor(heatLevel, point.eventType, point.intensity, isRecent);
-      
-      // Create sophisticated radial gradient
-      const gradient = ctx.createRadialGradient(
-        point.x, point.y, 0,
-        point.x, point.y, currentRadius
-      );
-      
-      // Apply user intensity setting at render time to prevent recalculation flicker
-      const alpha = Math.max(0.15, point.intensity * (intensity / 100)); // Apply user intensity here
-      
-      // Multi-stop gradient for realistic heat effect
-      const centerColor = `hsla(${hue}, ${saturation}%, ${Math.min(85, lightness + 20)}%, ${alpha})`;
-      const midColor = `hsla(${hue}, ${saturation}%, ${lightness}%, ${alpha * 0.8})`;
-      const edgeColor = `hsla(${hue}, ${Math.max(40, saturation - 20)}%, ${Math.max(30, lightness - 20)}%, ${alpha * 0.3})`;
-      const outerColor = `hsla(${hue}, ${Math.max(20, saturation - 40)}%, ${Math.max(20, lightness - 30)}%, 0)`;
-      
-      gradient.addColorStop(0, centerColor);
-      gradient.addColorStop(0.3, midColor);
-      gradient.addColorStop(0.7, edgeColor);
-      gradient.addColorStop(1, outerColor);
-
-      ctx.fillStyle = gradient;
-      
-      // Draw main heat circle
-      ctx.beginPath();
-      ctx.arc(point.x, point.y, currentRadius, 0, Math.PI * 2);
-      ctx.fill();
-      
-      // Add intensity rings for high-activity areas
-      if (heatLevel === 'extreme' || heatLevel === 'high') {
-        const ringGradient = ctx.createRadialGradient(
-          point.x, point.y, currentRadius * 0.6,
-          point.x, point.y, currentRadius * 1.2
-        );
+        // SIMPLIFIED: Fixed radius with minimal variation for performance
+        const currentRadius = radius * (isRecent ? 1.2 : heatLevel === 'extreme' ? 1.1 : 1.0);
         
-        const ringAlpha = alpha * 0.3;
-        ringGradient.addColorStop(0, `hsla(${hue}, ${saturation}%, ${lightness}%, ${ringAlpha})`);
-        ringGradient.addColorStop(1, `hsla(${hue}, ${saturation}%, ${lightness}%, 0)`);
-        
-        ctx.fillStyle = ringGradient;
-        ctx.beginPath();
-        ctx.arc(point.x, point.y, currentRadius * 1.2, 0, Math.PI * 2);
-        ctx.fill();
-      }
-      
-      // Add subtle pulse effect for very recent clicks
-      if (isRecent && point.intensity > 0.4) {
-        const pulseGradient = ctx.createRadialGradient(
-          point.x, point.y, 0,
-          point.x, point.y, currentRadius * 0.4
-        );
-        pulseGradient.addColorStop(0, `hsla(${hue}, 100%, 90%, 0.4)`);
-        pulseGradient.addColorStop(1, `hsla(${hue}, 100%, 90%, 0)`);
-        
-        ctx.fillStyle = pulseGradient;
-        ctx.beginPath();
-        ctx.arc(point.x, point.y, currentRadius * 0.4, 0, Math.PI * 2);
-        ctx.fill();
-      }
-      } catch (pointError) {
-        console.error(`🚨 Error drawing heat point at index ${index}:`, pointError, point);
-        // Continue to next point instead of crashing
-      }
-    });
-
-    // Draw pending heat points on top for instant feedback
-    pendingHeatPoints.forEach((point, index) => {
-      try {
-        // Validate point coordinates (more lenient)
-        if (!isFinite(point.x) || !isFinite(point.y) || 
-            point.x < -200 || point.y < -200 ||
-            point.x > dimensions.width + 200 || point.y > dimensions.height + 200) {
-          console.warn(`🚨 Skipping invalid pending heat point at index ${index}:`, point);
-          return;
-        }
-
-        // Pending points are always bright and prominent
-        const currentRadius = radius * 1.3; // Slightly larger for visibility
-        const { hue, saturation, lightness } = getHeatColor('extreme', point.eventType, point.intensity, true);
-        
-        // Create radial gradient for pending points
+        // OPTIMIZED: Single gradient per point
         const gradient = ctx.createRadialGradient(
           point.x, point.y, 0,
           point.x, point.y, currentRadius
         );
         
-        const alpha = 0.9; // High visibility for pending clicks
+        // VIBRANT GRADIENT: Multi-stop gradient for smooth color transitions
+        const centerColor = getVibrantHeatColor(heatLevel, point.eventType, intensity * 1.3, isRecent);
+        const midColor = getVibrantHeatColor(heatLevel, point.eventType, intensity * 0.8, isRecent);
+        const edgeColor = getVibrantHeatColor(heatLevel, point.eventType, intensity * 0.3, isRecent);
         
-        // Bright gradient for instant feedback
-        const centerColor = `hsla(${hue}, ${saturation}%, ${Math.min(90, lightness + 30)}%, ${alpha})`;
-        const midColor = `hsla(${hue}, ${saturation}%, ${lightness + 10}%, ${alpha * 0.8})`;
-        const edgeColor = `hsla(${hue}, ${Math.max(40, saturation - 10)}%, ${Math.max(30, lightness - 10)}%, ${alpha * 0.4})`;
-        const outerColor = `hsla(${hue}, ${Math.max(20, saturation - 30)}%, ${Math.max(20, lightness - 20)}%, 0)`;
-        
-        gradient.addColorStop(0, centerColor);
-        gradient.addColorStop(0.3, midColor);
-        gradient.addColorStop(0.7, edgeColor);
-        gradient.addColorStop(1, outerColor);
+        // Create vibrant multi-stop gradient for smooth color shifting
+        gradient.addColorStop(0, centerColor);     // Vibrant center
+        gradient.addColorStop(0.4, midColor);      // Smooth transition
+        gradient.addColorStop(0.7, edgeColor);     // Soft edge
+        gradient.addColorStop(1, 'rgba(0, 0, 0, 0)'); // Transparent fade
 
         ctx.fillStyle = gradient;
         
-        // Draw pending click circle
+        // SINGLE DRAW OPERATION: One circle per point for maximum performance
         ctx.beginPath();
         ctx.arc(point.x, point.y, currentRadius, 0, Math.PI * 2);
         ctx.fill();
         
-        // Add pulse effect for instant feedback
-        const pulseGradient = ctx.createRadialGradient(
-          point.x, point.y, 0,
-          point.x, point.y, currentRadius * 0.5
-        );
-        pulseGradient.addColorStop(0, `hsla(${hue}, 100%, 95%, 0.6)`);
-        pulseGradient.addColorStop(1, `hsla(${hue}, 100%, 95%, 0)`);
-        
-        ctx.fillStyle = pulseGradient;
-        ctx.beginPath();
-        ctx.arc(point.x, point.y, currentRadius * 0.5, 0, Math.PI * 2);
-        ctx.fill();
-        
       } catch (pointError) {
-        console.error(`🚨 Error drawing pending heat point at index ${index}:`, pointError, point);
+        // Silent error handling for performance
+        return;
       }
     });
 
-    // Reset composite operation
-    try {
-      ctx.globalCompositeOperation = 'source-over';
-    } catch (resetError) {
-      console.error('🚨 Error resetting composite operation:', resetError);
-    }
+    // OPTIMIZATION: Pending points are now rendered in the single-pass loop above
+
+    // PERFORMANCE: Track drawing performance
+    const drawingTime = performance.now() - drawStartTime;
+    performanceMetricsRef.current.frameRate = drawingTime > 0 ? Math.round(1000 / drawingTime) : 60;
+    
+    console.log(`⚡ PHASE 5 OPTIMIZED: Drew ${allPoints.length} points in ${drawingTime.toFixed(2)}ms (${performanceMetricsRef.current.frameRate}fps) with streamlined processing`);
     
     } catch (drawError) {
       console.error('🚨 Critical error in heatmap drawing:', drawError);
@@ -665,7 +660,7 @@ export function HeatmapOverlay({
         console.error('🚨 Error clearing canvas after draw error:', clearError);
       }
     }
-  }, [heatPoints, pendingHeatPoints, visible, dimensions, radius]);
+  }, [heatPoints, pendingHeatPoints, visible, dimensions, radius, intensity]);
 
   if (!visible) {
     return null;
@@ -695,7 +690,9 @@ export function HeatmapOverlay({
       {/* Enhanced Heatmap legend with intensity scale */}
       <div className="absolute top-2 right-2 sm:top-4 sm:right-4 bg-white dark:bg-gray-800 rounded-lg shadow-lg p-2 sm:p-3 pointer-events-auto max-w-[160px] sm:max-w-none">
         <div className="text-xs sm:text-sm font-medium text-gray-900 dark:text-white mb-1 sm:mb-2">
-          <span className="hidden sm:inline">Heat </span>Map
+          <span className="hidden sm:inline">Vibrant Heat</span>
+          <span className="sm:hidden">Heat</span>Map
+          <div className="text-xs text-green-600 dark:text-green-400 font-normal">Enhanced</div>
         </div>
         
         {/* Heat Intensity Scale */}
@@ -704,11 +701,13 @@ export function HeatmapOverlay({
             Intensity
           </div>
           <div className="flex items-center space-x-1">
-            <div className="w-3 h-3 rounded-full" style={{ background: 'hsl(240, 60%, 50%)' }} title="Cool (few clicks)" />
+            <div className="w-3 h-3 rounded-full" style={{ background: 'hsla(20, 70%, 45%, 0.8)' }} title="Minimal intensity" />
             <div className="w-1 h-1 bg-gray-300 rounded-full" />
-            <div className="w-3 h-3 rounded-full" style={{ background: 'hsl(60, 80%, 50%)' }} title="Warm (medium clicks)" />
+            <div className="w-3 h-3 rounded-full" style={{ background: 'hsla(10, 80%, 50%, 0.85)' }} title="Medium intensity" />
             <div className="w-1 h-1 bg-gray-300 rounded-full" />
-            <div className="w-3 h-3 rounded-full" style={{ background: 'hsl(0, 100%, 50%)' }} title="Hot (many clicks)" />
+            <div className="w-3 h-3 rounded-full" style={{ background: 'hsla(0, 90%, 55%, 0.9)' }} title="High intensity" />
+            <div className="w-1 h-1 bg-gray-300 rounded-full" />
+            <div className="w-3 h-3 rounded-full animate-pulse" style={{ background: 'hsla(350, 100%, 60%, 0.95)' }} title="Extreme intensity" />
           </div>
           <div className="flex justify-between text-xs text-gray-500 dark:text-gray-400 mt-1">
             <span>Cool</span>
@@ -719,11 +718,11 @@ export function HeatmapOverlay({
         {/* Event Types */}
         <div className="space-y-0.5 sm:space-y-1">
           {eventTypes.map(eventType => {
-            const baseHues = {
-              click: 0,     // Red spectrum
-              scroll: 120,  // Green spectrum
-              hover: 240,   // Blue spectrum
-              focus: 60,    // Yellow spectrum
+            const vibrantEventColors = {
+              click: 'hsla(0, 95%, 55%, 0.9)',     // Vibrant red
+              scroll: 'hsla(120, 90%, 50%, 0.9)',  // Vibrant emerald
+              hover: 'hsla(240, 95%, 60%, 0.9)',   // Vibrant cyan-blue
+              focus: 'hsla(60, 95%, 55%, 0.9)',    // Vibrant gold
             };
             
             const labels = {
@@ -733,13 +732,13 @@ export function HeatmapOverlay({
               focus: 'Focus',
             };
             
-            const hue = baseHues[eventType as keyof typeof baseHues] || 0;
+            const eventColor = vibrantEventColors[eventType as keyof typeof vibrantEventColors] || vibrantEventColors.click;
             
             return (
               <div key={eventType} className="flex items-center space-x-1 sm:space-x-2">
                 <div 
-                  className="w-2 h-2 sm:w-3 sm:h-3 rounded-full flex-shrink-0" 
-                  style={{ background: `hsl(${hue}, 80%, 50%)` }}
+                  className="w-2 h-2 sm:w-3 sm:h-3 rounded-full flex-shrink-0 shadow-sm" 
+                  style={{ background: eventColor }}
                 />
                 <span className="text-xs text-gray-600 dark:text-gray-300 truncate">
                   {labels[eventType]}

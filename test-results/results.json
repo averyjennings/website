@@ -1,0 +1,400 @@
+{
+  "config": {
+    "configFile": "C:\\Users\\avery\\projects\\website\\playwright.config.ts",
+    "rootDir": "C:/Users/avery/projects/website/tests",
+    "forbidOnly": false,
+    "fullyParallel": true,
+    "globalSetup": "C:\\Users\\avery\\projects\\website\\tests\\global-setup.ts",
+    "globalTeardown": "C:\\Users\\avery\\projects\\website\\tests\\global-teardown.ts",
+    "globalTimeout": 0,
+    "grep": {},
+    "grepInvert": null,
+    "maxFailures": 0,
+    "metadata": {
+      "actualWorkers": 1
+    },
+    "preserveOutput": "always",
+    "reporter": [
+      [
+        "html",
+        {
+          "outputFolder": "test-results/html-report"
+        }
+      ],
+      [
+        "json",
+        {
+          "outputFile": "test-results/results.json"
+        }
+      ],
+      [
+        "junit",
+        {
+          "outputFile": "test-results/junit.xml"
+        }
+      ],
+      [
+        "list",
+        null
+      ]
+    ],
+    "reportSlowTests": {
+      "max": 5,
+      "threshold": 300000
+    },
+    "quiet": false,
+    "projects": [
+      {
+        "outputDir": "C:/Users/avery/projects/website/test-results/artifacts",
+        "repeatEach": 1,
+        "retries": 1,
+        "metadata": {
+          "actualWorkers": 1
+        },
+        "id": "chromium-desktop",
+        "name": "chromium-desktop",
+        "testDir": "C:/Users/avery/projects/website/tests",
+        "testIgnore": [],
+        "testMatch": [
+          "tests/heatmap.spec.ts",
+          "tests/heatmap-integration.spec.ts",
+          "tests/heatmap-load.spec.ts"
+        ],
+        "timeout": 30000
+      },
+      {
+        "outputDir": "C:/Users/avery/projects/website/test-results/artifacts",
+        "repeatEach": 1,
+        "retries": 1,
+        "metadata": {
+          "actualWorkers": 1
+        },
+        "id": "firefox-desktop",
+        "name": "firefox-desktop",
+        "testDir": "C:/Users/avery/projects/website/tests",
+        "testIgnore": [],
+        "testMatch": [
+          "tests/heatmap.spec.ts",
+          "tests/heatmap-integration.spec.ts",
+          "tests/heatmap-load.spec.ts"
+        ],
+        "timeout": 30000
+      },
+      {
+        "outputDir": "C:/Users/avery/projects/website/test-results/artifacts",
+        "repeatEach": 1,
+        "retries": 1,
+        "metadata": {
+          "actualWorkers": 1
+        },
+        "id": "webkit-desktop",
+        "name": "webkit-desktop",
+        "testDir": "C:/Users/avery/projects/website/tests",
+        "testIgnore": [],
+        "testMatch": [
+          "tests/heatmap.spec.ts",
+          "tests/heatmap-integration.spec.ts",
+          "tests/heatmap-load.spec.ts"
+        ],
+        "timeout": 30000
+      },
+      {
+        "outputDir": "C:/Users/avery/projects/website/test-results/artifacts",
+        "repeatEach": 1,
+        "retries": 1,
+        "metadata": {
+          "actualWorkers": 1
+        },
+        "id": "tablet-ipad",
+        "name": "tablet-ipad",
+        "testDir": "C:/Users/avery/projects/website/tests",
+        "testIgnore": [],
+        "testMatch": [
+          "tests/heatmap.spec.ts",
+          "tests/heatmap-integration.spec.ts",
+          "tests/heatmap-load.spec.ts"
+        ],
+        "timeout": 30000
+      },
+      {
+        "outputDir": "C:/Users/avery/projects/website/test-results/artifacts",
+        "repeatEach": 1,
+        "retries": 1,
+        "metadata": {
+          "actualWorkers": 1
+        },
+        "id": "tablet-android",
+        "name": "tablet-android",
+        "testDir": "C:/Users/avery/projects/website/tests",
+        "testIgnore": [],
+        "testMatch": [
+          "tests/heatmap.spec.ts",
+          "tests/heatmap-integration.spec.ts",
+          "tests/heatmap-load.spec.ts"
+        ],
+        "timeout": 30000
+      },
+      {
+        "outputDir": "C:/Users/avery/projects/website/test-results/artifacts",
+        "repeatEach": 1,
+        "retries": 1,
+        "metadata": {
+          "actualWorkers": 1
+        },
+        "id": "mobile-iphone",
+        "name": "mobile-iphone",
+        "testDir": "C:/Users/avery/projects/website/tests",
+        "testIgnore": [],
+        "testMatch": [
+          "tests/heatmap.spec.ts",
+          "tests/heatmap-integration.spec.ts",
+          "tests/heatmap-load.spec.ts"
+        ],
+        "timeout": 30000
+      },
+      {
+        "outputDir": "C:/Users/avery/projects/website/test-results/artifacts",
+        "repeatEach": 1,
+        "retries": 1,
+        "metadata": {
+          "actualWorkers": 1
+        },
+        "id": "mobile-android",
+        "name": "mobile-android",
+        "testDir": "C:/Users/avery/projects/website/tests",
+        "testIgnore": [],
+        "testMatch": [
+          "tests/heatmap.spec.ts",
+          "tests/heatmap-integration.spec.ts",
+          "tests/heatmap-load.spec.ts"
+        ],
+        "timeout": 30000
+      },
+      {
+        "outputDir": "C:/Users/avery/projects/website/test-results/artifacts",
+        "repeatEach": 1,
+        "retries": 1,
+        "metadata": {
+          "actualWorkers": 1
+        },
+        "id": "mobile-small",
+        "name": "mobile-small",
+        "testDir": "C:/Users/avery/projects/website/tests",
+        "testIgnore": [],
+        "testMatch": [
+          "tests/heatmap.spec.ts",
+          "tests/heatmap-integration.spec.ts",
+          "tests/heatmap-load.spec.ts"
+        ],
+        "timeout": 30000
+      },
+      {
+        "outputDir": "C:/Users/avery/projects/website/test-results/artifacts",
+        "repeatEach": 1,
+        "retries": 1,
+        "metadata": {
+          "actualWorkers": 1
+        },
+        "id": "performance-testing",
+        "name": "performance-testing",
+        "testDir": "C:/Users/avery/projects/website/tests",
+        "testIgnore": [],
+        "testMatch": [
+          "/.*load\\.spec\\.ts/"
+        ],
+        "timeout": 30000
+      },
+      {
+        "outputDir": "C:/Users/avery/projects/website/test-results/artifacts",
+        "repeatEach": 1,
+        "retries": 1,
+        "metadata": {
+          "actualWorkers": 1
+        },
+        "id": "high-dpi",
+        "name": "high-dpi",
+        "testDir": "C:/Users/avery/projects/website/tests",
+        "testIgnore": [],
+        "testMatch": [
+          "tests/heatmap.spec.ts",
+          "tests/heatmap-integration.spec.ts",
+          "tests/heatmap-load.spec.ts"
+        ],
+        "timeout": 30000
+      },
+      {
+        "outputDir": "C:/Users/avery/projects/website/test-results/artifacts",
+        "repeatEach": 1,
+        "retries": 1,
+        "metadata": {
+          "actualWorkers": 1
+        },
+        "id": "accessibility",
+        "name": "accessibility",
+        "testDir": "C:/Users/avery/projects/website/tests",
+        "testIgnore": [],
+        "testMatch": [
+          "/.*a11y\\.spec\\.ts/"
+        ],
+        "timeout": 30000
+      }
+    ],
+    "shard": null,
+    "updateSnapshots": "missing",
+    "updateSourceMethod": "patch",
+    "version": "1.54.1",
+    "workers": 3,
+    "webServer": {
+      "command": "npm run dev",
+      "port": 5173,
+      "reuseExistingServer": true,
+      "timeout": 120000,
+      "env": {
+        "NODE_ENV": "test"
+      }
+    }
+  },
+  "suites": [
+    {
+      "title": "heatmap.spec.ts",
+      "file": "heatmap.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [],
+      "suites": [
+        {
+          "title": "🚀 Phase 6: Heatmap Onboarding Experience",
+          "file": "heatmap.spec.ts",
+          "line": 99,
+          "column": 6,
+          "specs": [
+            {
+              "title": "should show beautiful onboarding modal for first-time visitors",
+              "ok": false,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium-desktop",
+                  "projectName": "chromium-desktop",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "failed",
+                      "duration": 254,
+                      "error": {
+                        "message": "Error: page.evaluate: SecurityError: Failed to read the 'localStorage' property from 'Window': Access is denied for this document.\n    at UtilityScript.evaluate (<anonymous>:293:16)\n    at UtilityScript.<anonymous> (<anonymous>:1:44)",
+                        "stack": "Error: page.evaluate: SecurityError: Failed to read the 'localStorage' property from 'Window': Access is denied for this document.\n    at UtilityScript.evaluate (<anonymous>:293:16)\n    at UtilityScript.<anonymous> (<anonymous>:1:44)\n    at UtilityScript.evaluate (<anonymous>:293:16)\n    at UtilityScript.<anonymous> (<anonymous>:1:44)\n    at HeatmapTestUtils.clearHeatmapStorage (C:\\Users\\avery\\projects\\website\\tests\\heatmap.spec.ts:40:21)\n    at C:\\Users\\avery\\projects\\website\\tests\\heatmap.spec.ts:104:17",
+                        "location": {
+                          "file": "<anonymous>",
+                          "column": 16,
+                          "line": 293
+                        }
+                      },
+                      "errors": [
+                        {
+                          "location": {
+                            "file": "<anonymous>",
+                            "column": 16,
+                            "line": 293
+                          },
+                          "message": "Error: page.evaluate: SecurityError: Failed to read the 'localStorage' property from 'Window': Access is denied for this document.\n    at UtilityScript.evaluate (<anonymous>:293:16)\n    at UtilityScript.<anonymous> (<anonymous>:1:44)\n    at UtilityScript.evaluate (<anonymous>:293:16)\n    at UtilityScript.<anonymous> (<anonymous>:1:44)\n    at HeatmapTestUtils.clearHeatmapStorage (C:\\Users\\avery\\projects\\website\\tests\\heatmap.spec.ts:40:21)\n    at C:\\Users\\avery\\projects\\website\\tests\\heatmap.spec.ts:104:17"
+                        }
+                      ],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2025-07-26T05:55:28.928Z",
+                      "annotations": [],
+                      "attachments": [
+                        {
+                          "name": "screenshot",
+                          "contentType": "image/png",
+                          "path": "C:\\Users\\avery\\projects\\website\\test-results\\artifacts\\heatmap-🚀-Phase-6-Heatmap-619d3-dal-for-first-time-visitors-chromium-desktop\\test-failed-1.png"
+                        }
+                      ],
+                      "errorLocation": {
+                        "file": "<anonymous>",
+                        "column": 16,
+                        "line": 293
+                      }
+                    },
+                    {
+                      "workerIndex": 1,
+                      "parallelIndex": 0,
+                      "status": "failed",
+                      "duration": 317,
+                      "error": {
+                        "message": "Error: page.evaluate: SecurityError: Failed to read the 'localStorage' property from 'Window': Access is denied for this document.\n    at UtilityScript.evaluate (<anonymous>:293:16)\n    at UtilityScript.<anonymous> (<anonymous>:1:44)",
+                        "stack": "Error: page.evaluate: SecurityError: Failed to read the 'localStorage' property from 'Window': Access is denied for this document.\n    at UtilityScript.evaluate (<anonymous>:293:16)\n    at UtilityScript.<anonymous> (<anonymous>:1:44)\n    at UtilityScript.evaluate (<anonymous>:293:16)\n    at UtilityScript.<anonymous> (<anonymous>:1:44)\n    at HeatmapTestUtils.clearHeatmapStorage (C:\\Users\\avery\\projects\\website\\tests\\heatmap.spec.ts:40:21)\n    at C:\\Users\\avery\\projects\\website\\tests\\heatmap.spec.ts:104:17",
+                        "location": {
+                          "file": "<anonymous>",
+                          "column": 16,
+                          "line": 293
+                        }
+                      },
+                      "errors": [
+                        {
+                          "location": {
+                            "file": "<anonymous>",
+                            "column": 16,
+                            "line": 293
+                          },
+                          "message": "Error: page.evaluate: SecurityError: Failed to read the 'localStorage' property from 'Window': Access is denied for this document.\n    at UtilityScript.evaluate (<anonymous>:293:16)\n    at UtilityScript.<anonymous> (<anonymous>:1:44)\n    at UtilityScript.evaluate (<anonymous>:293:16)\n    at UtilityScript.<anonymous> (<anonymous>:1:44)\n    at HeatmapTestUtils.clearHeatmapStorage (C:\\Users\\avery\\projects\\website\\tests\\heatmap.spec.ts:40:21)\n    at C:\\Users\\avery\\projects\\website\\tests\\heatmap.spec.ts:104:17"
+                        }
+                      ],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 1,
+                      "startTime": "2025-07-26T05:55:30.253Z",
+                      "annotations": [],
+                      "attachments": [
+                        {
+                          "name": "screenshot",
+                          "contentType": "image/png",
+                          "path": "C:\\Users\\avery\\projects\\website\\test-results\\artifacts\\heatmap-🚀-Phase-6-Heatmap-619d3-dal-for-first-time-visitors-chromium-desktop-retry1\\test-failed-1.png"
+                        },
+                        {
+                          "name": "video",
+                          "contentType": "video/webm",
+                          "path": "C:\\Users\\avery\\projects\\website\\test-results\\artifacts\\heatmap-🚀-Phase-6-Heatmap-619d3-dal-for-first-time-visitors-chromium-desktop-retry1\\video.webm"
+                        },
+                        {
+                          "name": "trace",
+                          "contentType": "application/zip",
+                          "path": "C:\\Users\\avery\\projects\\website\\test-results\\artifacts\\heatmap-🚀-Phase-6-Heatmap-619d3-dal-for-first-time-visitors-chromium-desktop-retry1\\trace.zip"
+                        }
+                      ],
+                      "errorLocation": {
+                        "file": "<anonymous>",
+                        "column": 16,
+                        "line": 293
+                      }
+                    }
+                  ],
+                  "status": "unexpected"
+                }
+              ],
+              "id": "2274b30623d54bcb5def-c5dfeb9564b31e1860db",
+              "file": "heatmap.spec.ts",
+              "line": 107,
+              "column": 3
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "errors": [],
+  "stats": {
+    "startTime": "2025-07-26T05:55:15.574Z",
+    "duration": 26347.398999999998,
+    "expected": 0,
+    "skipped": 0,
+    "unexpected": 1,
+    "flaky": 0
+  }
+}

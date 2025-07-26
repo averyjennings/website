@@ -233,7 +233,16 @@ The project is designed to be deployed on Vercel with:
 - ⏳ Core components need implementation
 - ⏳ Priority features pending
 
+## Website Development Communication
+
+### Patch Notes and Feature Tracking
+- Always maintain website banners explaining features in development or recently launched
+- Maintain a comprehensive patch notes section detailing all historical and new commits
+- Each commit in the patch notes should be labeled with its commit hash
+- Update patch notes after every significant change or commit to the website project
+
 ## MCP Tool Verification
 
 - You verify websites with your mcp tool
+```
 ```
