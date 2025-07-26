@@ -48,15 +48,26 @@ export function HeatmapToggle({ className = '' }: HeatmapToggleProps) {
     if (!isVisible) return;
 
     const refreshInterval = setInterval(() => {
-      const currentBufferSize = heatmapTracker.getBufferSize();
-      // Only refresh if there's new data in the buffer
-      if (currentBufferSize > 0) {
-        console.log(`🔄 Auto-refreshing heatmap data (${currentBufferSize} new events)`);
-        loadHeatmapData();
-      }
-    }, 3000); // Check every 3 seconds
+      console.log(`🔄 Auto-refreshing heatmap data (periodic refresh)`);
+      loadHeatmapData();
+    }, 3000); // Refresh every 3 seconds for better responsiveness
 
     return () => clearInterval(refreshInterval);
+  }, [isVisible]);
+
+  // Immediate refresh when new data is added to buffer (very aggressive)
+  useEffect(() => {
+    if (!isVisible) return;
+    
+    const checkForNewData = setInterval(() => {
+      const currentBufferSize = heatmapTracker.getBufferSize();
+      if (currentBufferSize > 0) {
+        console.log(`⚡ Immediate refresh due to ${currentBufferSize} new events in buffer`);
+        loadHeatmapData();
+      }
+    }, 500); // Check every 500ms for ultra-responsive feedback
+    
+    return () => clearInterval(checkForNewData);
   }, [isVisible]);
 
   const loadHeatmapData = async () => {
@@ -107,8 +118,17 @@ export function HeatmapToggle({ className = '' }: HeatmapToggleProps) {
 
   const handleClearData = async () => {
     if (confirm('This will clear all heatmap data. Are you sure?')) {
-      heatmapTracker.clearHeatmapData();
-      setHeatmapData([]);
+      try {
+        setIsLoading(true);
+        await heatmapTracker.clearHeatmapData();
+        setHeatmapData([]);
+        console.log('✅ Heatmap data cleared successfully');
+      } catch (error) {
+        console.error('Failed to clear heatmap data:', error);
+        alert('Failed to clear heatmap data. Please try again.');
+      } finally {
+        setIsLoading(false);
+      }
     }
   };
 

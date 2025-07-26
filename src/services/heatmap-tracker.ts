@@ -299,13 +299,17 @@ class HeatmapTracker {
     }
   }
 
-  public async getHeatmapData(pageUrl?: string, eventTypes?: HeatmapDataPoint['eventType'][]): Promise<HeatmapDataPoint[]> {
+  public async getHeatmapData(pageUrl?: string, eventTypes?: HeatmapDataPoint['eventType'][], timeFilterHours: number = 24): Promise<HeatmapDataPoint[]> {
     try {
+      // Calculate time threshold (default: last 1 hour)
+      const timeThreshold = new Date(Date.now() - (timeFilterHours * 60 * 60 * 1000)).toISOString();
+      
       let query = supabase
         .from('heatmap_data')
         .select('*')
+        .gte('timestamp', timeThreshold) // Only get recent data
         .order('timestamp', { ascending: false })
-        .limit(10000);
+        .limit(1000); // Reduced limit since we're filtering by time
 
       if (pageUrl) {
         query = query.eq('page_url', pageUrl);
@@ -322,7 +326,7 @@ class HeatmapTracker {
         return this.getFallbackData();
       }
 
-      return (data || []).map(item => ({
+      const dbData = (data || []).map(item => ({
         id: item.id,
         x: item.x,
         y: item.y,
@@ -338,6 +342,20 @@ class HeatmapTracker {
         sessionId: item.session_id,
         eventType: item.event_type,
       }));
+      
+      // Include pending buffer data for immediate visual feedback
+      const currentPageUrl = window.location.pathname + window.location.hash;
+      const relevantBufferData = this.dataBuffer.filter(point => 
+        (!pageUrl || point.pageUrl === currentPageUrl) &&
+        (!eventTypes || eventTypes.length === 0 || eventTypes.includes(point.eventType))
+      );
+      
+      // Combine database data with buffer data
+      const combinedData = [...dbData, ...relevantBufferData];
+      
+      console.log(`📊 Retrieved ${dbData.length} points from DB + ${relevantBufferData.length} from buffer = ${combinedData.length} total`);
+      
+      return combinedData;
     } catch (error) {
       console.error('Error fetching heatmap data:', error);
       return this.getFallbackData();
@@ -354,9 +372,28 @@ class HeatmapTracker {
     }
   }
 
-  public clearHeatmapData(): void {
-    this.dataBuffer = [];
-    localStorage.removeItem('heatmap-data-fallback');
+  public async clearHeatmapData(): Promise<void> {
+    try {
+      // Clear buffer and localStorage first
+      this.dataBuffer = [];
+      localStorage.removeItem('heatmap-data-fallback');
+      
+      // Clear all data from Supabase database
+      const { error } = await supabase
+        .from('heatmap_data')
+        .delete()
+        .neq('id', '00000000-0000-0000-0000-000000000000'); // Delete all rows (using impossible ID condition)
+      
+      if (error) {
+        console.error('Failed to clear heatmap data from database:', error);
+        throw error;
+      }
+      
+      console.log('🗑️ Successfully cleared all heatmap data from database and local storage');
+    } catch (error) {
+      console.error('Error clearing heatmap data:', error);
+      throw error;
+    }
   }
 
   public getBufferSize(): number {

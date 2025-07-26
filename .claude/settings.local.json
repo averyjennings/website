@@ -36,7 +36,9 @@
       "Bash(rm:*)",
       "Bash(mkdir:*)",
       "Bash(touch:*)",
-      "mcp__playwright__browser_network_requests"
+      "mcp__playwright__browser_network_requests",
+      "mcp__playwright__browser_handle_dialog",
+      "mcp__playwright__browser_press_key"
     ],
     "deny": []
   }

@@ -1,4 +1,3 @@
-import { HelmetProvider } from 'react-helmet-async';
 import { ReactNode } from 'react';
 
 interface SEOProviderProps {
@@ -6,11 +5,8 @@ interface SEOProviderProps {
 }
 
 export function SEOProvider({ children }: SEOProviderProps) {
-  return (
-    <HelmetProvider>
-      {children}
-    </HelmetProvider>
-  );
+  // React 19 handles metadata natively, no wrapper needed
+  return <>{children}</>;
 }
 
 export default SEOProvider;

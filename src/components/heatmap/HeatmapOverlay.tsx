@@ -152,7 +152,7 @@ export function HeatmapOverlay({
     };
 
     // Draw each heat point
-    heatPoints.forEach((point, index) => {
+    heatPoints.forEach((point) => {
       const color = eventColors[point.eventType] || eventColors.click;
       const isRecent = (point as any).isRecent;
       const currentRadius = isRecent ? radius * 1.2 : radius; // Recent clicks are 20% larger

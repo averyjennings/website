@@ -1,4 +1,4 @@
-import { Helmet } from 'react-helmet-async';
+// React 19 supports native metadata handling
 
 interface Project {
   name: string;
@@ -217,14 +217,14 @@ export function StructuredData({
   };
 
   return (
-    <Helmet>
-      <script type="application/ld+json">
-        {JSON.stringify(getStructuredData(), null, 2)}
-      </script>
-      <script type="application/ld+json">
-        {JSON.stringify(getBreadcrumbStructuredData(), null, 2)}
-      </script>
-    </Helmet>
+    <>
+      <script type="application/ld+json" dangerouslySetInnerHTML={{
+        __html: JSON.stringify(getStructuredData(), null, 2)
+      }} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{
+        __html: JSON.stringify(getBreadcrumbStructuredData(), null, 2)
+      }} />
+    </>
   );
 }
 
