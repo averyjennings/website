@@ -44,32 +44,21 @@ export function HeatmapToggle({ className = '' }: HeatmapToggleProps) {
     }
   }, [isVisible]);
 
-  // Auto-refresh heatmap data when visible (reduced frequency for stability)
+  // Minimal auto-refresh to prevent dots from disappearing
   useEffect(() => {
     if (!isVisible) return;
 
+    // Only refresh every 60 seconds to maintain stability
     const refreshInterval = setInterval(() => {
-      console.log(`🔄 Auto-refreshing heatmap data (periodic refresh)`);
+      console.log(`🔄 Minimal periodic refresh (60s interval)`);
       loadHeatmapData();
-    }, 10000); // Refresh every 10 seconds instead of 3 for stability
+    }, 60000); // Every 60 seconds instead of 10
 
     return () => clearInterval(refreshInterval);
   }, [isVisible]);
 
-  // Refresh when new data is added to buffer (less aggressive)
-  useEffect(() => {
-    if (!isVisible) return;
-    
-    const checkForNewData = setInterval(() => {
-      const currentBufferSize = heatmapTracker.getBufferSize();
-      if (currentBufferSize >= 3) { // Only refresh when 3+ new events (was 1+)
-        console.log(`⚡ Refresh due to ${currentBufferSize} new events in buffer`);
-        loadHeatmapData();
-      }
-    }, 2000); // Check every 2 seconds instead of 500ms
-    
-    return () => clearInterval(checkForNewData);
-  }, [isVisible]);
+  // Manual refresh only - no automatic buffer checking to prevent dots disappearing
+  // Users can manually refresh if they want to see new data from other users
 
   const loadHeatmapData = async () => {
     setIsLoading(true);

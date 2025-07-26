@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, useMemo } from 'react';
-import { HeatmapDataPoint } from '@/services/heatmap-tracker';
+import { HeatmapDataPoint, heatmapTracker } from '@/services/heatmap-tracker';
 
 interface HeatmapOverlayProps {
   data: HeatmapDataPoint[];
@@ -22,11 +22,59 @@ export function HeatmapOverlay({
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const [dimensions, setDimensions] = useState({ width: 0, height: 0 });
+  const [pendingClicks, setPendingClicks] = useState<HeatmapDataPoint[]>([]);
+
+  // Poll for pending clicks to provide instant feedback
+  useEffect(() => {
+    if (!visible) {
+      setPendingClicks([]);
+      return;
+    }
+
+    const pollPendingClicks = async () => {
+      try {
+        // Get buffer data directly from the tracker for instant feedback
+        const currentUrl = window.location.pathname + window.location.hash;
+        const allData = await heatmapTracker.getHeatmapData(currentUrl, eventTypes, 0.1); // Very recent (6 minutes)
+        
+        // Filter to get only very recent clicks (last 2 minutes) as "pending"
+        const twoMinutesAgo = new Date(Date.now() - 2 * 60 * 1000).toISOString();
+        const recentClicks = allData.filter(point => point.timestamp > twoMinutesAgo);
+        
+        setPendingClicks(recentClicks);
+      } catch (error) {
+        console.error('Error polling pending clicks:', error);
+      }
+    };
+
+    // Poll immediately and then every 100ms for truly instant feedback
+    pollPendingClicks();
+    const pollInterval = setInterval(pollPendingClicks, 100);
+
+    return () => clearInterval(pollInterval);
+  }, [visible, eventTypes]);
 
   // Filter and normalize data points with advanced proportional scaling
   const heatPoints = useMemo(() => {
     try {
-      const filteredData = data.filter(point => eventTypes.includes(point.eventType));
+      // Combine stable database data with pending clicks for instant feedback
+      const stableData = data.filter(point => eventTypes.includes(point.eventType));
+      const pendingData = pendingClicks.filter(point => eventTypes.includes(point.eventType));
+      
+      // Deduplicate by timestamp and position to avoid double-rendering
+      const combinedData = [...stableData];
+      pendingData.forEach(pendingPoint => {
+        const isDuplicate = stableData.some(stablePoint => 
+          Math.abs(stablePoint.x - pendingPoint.x) < 0.01 && 
+          Math.abs(stablePoint.y - pendingPoint.y) < 0.01 &&
+          Math.abs(new Date(stablePoint.timestamp).getTime() - new Date(pendingPoint.timestamp).getTime()) < 5000
+        );
+        if (!isDuplicate) {
+          combinedData.push(pendingPoint);
+        }
+      });
+      
+      const filteredData = combinedData;
       
       if (filteredData.length === 0) return [];
       
@@ -102,8 +150,8 @@ export function HeatmapOverlay({
     // Group points by proximity to reduce noise
     const groupedPoints = new Map<string, { count: number; x: number; y: number; eventType: HeatmapDataPoint['eventType']; isRecent: boolean }>();
     
-    // Calculate what counts as "recent" (last 60 seconds for stability)
-    const recentThreshold = new Date(Date.now() - 60000).toISOString();
+    // Calculate what counts as "recent" (last 15 seconds for instant feedback)
+    const recentThreshold = new Date(Date.now() - 15000).toISOString();
     
     pointsWithAbsoluteCoords.forEach(point => {
       // Create responsive grid-based grouping - smaller grid for better precision
@@ -132,15 +180,21 @@ export function HeatmapOverlay({
       }
     });
 
-    // Convert to heat points with sophisticated global proportional scaling
+    // Convert to heat points with stable statistical distribution
     const points = Array.from(groupedPoints.values());
     const totalClicks = filteredData.length;
     const counts = points.map(p => p.count);
     const maxCount = Math.max(...counts, 1);
     const minCount = Math.min(...counts, 1);
     
-    // Calculate statistical distribution for better color mapping
-    const sortedCounts = [...counts].sort((a, b) => a - b);
+    // Calculate statistical distribution based ONLY on stable database data to prevent shifting
+    const stablePoints = Array.from(groupedPoints.values()).filter(point => {
+      // Only include points that are not very recent (to maintain stable distribution)
+      return !point.isRecent;
+    });
+    
+    const stableCounts = stablePoints.length > 0 ? stablePoints.map(p => p.count) : counts;
+    const sortedCounts = [...stableCounts].sort((a, b) => a - b);
     const p25 = sortedCounts[Math.floor(sortedCounts.length * 0.25)] || 1;
     const p50 = sortedCounts[Math.floor(sortedCounts.length * 0.50)] || 1;
     const p75 = sortedCounts[Math.floor(sortedCounts.length * 0.75)] || 1;
@@ -154,26 +208,33 @@ export function HeatmapOverlay({
       let normalizedIntensity;
       let heatLevel: 'minimal' | 'low' | 'medium' | 'high' | 'extreme';
       
-      // Map counts to heat levels using percentiles for balanced distribution
-      if (point.count >= p90) {
-        heatLevel = 'extreme';
-        normalizedIntensity = 0.9 + ((point.count - p90) / (maxCount - p90)) * 0.1; // 0.9-1.0
-      } else if (point.count >= p75) {
+      // Give instant feedback for very recent clicks (pending/new clicks)
+      if (point.isRecent) {
+        // Recent clicks always get high visibility for instant feedback
         heatLevel = 'high';
-        normalizedIntensity = 0.7 + ((point.count - p75) / (p90 - p75)) * 0.2; // 0.7-0.9
-      } else if (point.count >= p50) {
-        heatLevel = 'medium';
-        normalizedIntensity = 0.5 + ((point.count - p50) / (p75 - p50)) * 0.2; // 0.5-0.7
-      } else if (point.count >= p25) {
-        heatLevel = 'low';
-        normalizedIntensity = 0.3 + ((point.count - p25) / (p50 - p25)) * 0.2; // 0.3-0.5
+        normalizedIntensity = 0.8; // High visibility for immediate feedback
       } else {
-        heatLevel = 'minimal';
-        normalizedIntensity = 0.2 + ((point.count - minCount) / Math.max(p25 - minCount, 1)) * 0.1; // 0.2-0.3
+        // Use statistical distribution for older, stable points
+        if (point.count >= p90) {
+          heatLevel = 'extreme';
+          normalizedIntensity = 0.9 + ((point.count - p90) / Math.max(maxCount - p90, 1)) * 0.1; // 0.9-1.0
+        } else if (point.count >= p75) {
+          heatLevel = 'high';
+          normalizedIntensity = 0.7 + ((point.count - p75) / Math.max(p90 - p75, 1)) * 0.2; // 0.7-0.9
+        } else if (point.count >= p50) {
+          heatLevel = 'medium';
+          normalizedIntensity = 0.5 + ((point.count - p50) / Math.max(p75 - p50, 1)) * 0.2; // 0.5-0.7
+        } else if (point.count >= p25) {
+          heatLevel = 'low';
+          normalizedIntensity = 0.3 + ((point.count - p25) / Math.max(p50 - p25, 1)) * 0.2; // 0.3-0.5
+        } else {
+          heatLevel = 'minimal';
+          normalizedIntensity = 0.2 + ((point.count - minCount) / Math.max(p25 - minCount, 1)) * 0.1; // 0.2-0.3
+        }
       }
       
       // Store normalized intensity without applying user setting yet
-      const baseIntensity = normalizedIntensity * (point.isRecent ? 1.3 : 1);
+      const baseIntensity = normalizedIntensity * (point.isRecent ? 1.5 : 1); // Extra boost for recent
       
       return {
         x: point.x,
@@ -189,7 +250,7 @@ export function HeatmapOverlay({
       console.error('🚨 Error processing heatmap data:', error);
       return []; // Return empty array on error to prevent crashes
     }
-  }, [data, eventTypes]); // Removed intensity dependency to prevent constant recalculation
+  }, [data, eventTypes, pendingClicks]); // Include pendingClicks for instant feedback
 
   // Update canvas dimensions when visibility changes or window resizes
   useEffect(() => {
@@ -603,6 +664,14 @@ export function HeatmapOverlay({
               <span className="hidden sm:inline">{heatPoints.length} heat </span>
               <span className="sm:hidden">{heatPoints.length} </span>zones
             </div>
+            {pendingClicks.length > 0 && (
+              <div className="flex items-center mt-1">
+                <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse mr-1" />
+                <span className="text-green-600 dark:text-green-400">
+                  Live ({pendingClicks.length} recent)
+                </span>
+              </div>
+            )}
           </div>
         </div>
       </div>
