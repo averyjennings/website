@@ -251,6 +251,9 @@ class SupabaseAnalyticsService {
       navigationType: (metric.navigationType as WebVitalMetric['navigationType']) || 'navigate',
     };
 
+    // Always store in localStorage for immediate availability
+    this.storeMetricLocally(webVitalMetric);
+
     if (!this.isSupabaseAvailable) {
       return this.fallbackToLocalStorage('recordMetric', webVitalMetric);
     }
@@ -855,6 +858,8 @@ class SupabaseAnalyticsService {
         return this.getVisitorStatsLocalStorage(args[0] || '24h');
       case 'recordMetric':
         return this.recordMetricLocalStorage(args[0]);
+      case 'getAllMetricsWithVisitorData':
+        return this.getAllMetricsWithVisitorDataSync(args[0] || '24h');
       default:
         return this.getEmptyResponse(method);
     }
@@ -943,24 +948,29 @@ class SupabaseAnalyticsService {
   }
 
   private recordMetricLocalStorage(metric: any): void {
+    // Metric is already stored by storeMetricLocally
+    console.log('📦 Metric recorded in localStorage');
+  }
+
+  private storeMetricLocally(metric: WebVitalMetric): void {
     try {
-      const metrics = JSON.parse(localStorage.getItem('analytics-web-vitals') || '[]');
-      metrics.push({
-        ...metric,
-        user_id: this.userId,
-        session_id: this.sessionId,
-        timestamp: new Date().toISOString()
-      });
+      const data = this.getStoredData();
+      data.metrics.push(metric);
       
       // Keep only last 500 metrics
-      if (metrics.length > 500) {
-        metrics.splice(0, metrics.length - 500);
+      if (data.metrics.length > 500) {
+        data.metrics = data.metrics.slice(-500);
       }
       
-      localStorage.setItem('analytics-web-vitals', JSON.stringify(metrics));
-      console.log('📦 Metric recorded in localStorage');
+      data.lastUpdated = Date.now();
+      
+      localStorage.setItem(this.storageKey, JSON.stringify({
+        metrics: data.metrics,
+        lastUpdated: data.lastUpdated,
+        sessionId: this.sessionId
+      }));
     } catch (error) {
-      console.error('Failed to record metric in localStorage:', error);
+      console.error('Failed to store metric locally:', error);
     }
   }
 
