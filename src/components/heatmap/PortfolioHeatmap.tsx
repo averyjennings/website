@@ -7,6 +7,7 @@ export const PortfolioHeatmap = () => {
   const containerRef = useRef<HTMLDivElement>(null);
   const heatmapRef = useRef<ClarityHeatmapManager | null>(null);
   const isInitialized = useRef(false);
+  const loadingOverlayRef = useRef<HTMLDivElement | null>(null);
   
   useEffect(() => {
     if (!containerRef.current || isInitialized.current) return;
@@ -32,6 +33,43 @@ export const PortfolioHeatmap = () => {
       z-index: 9999;
     `;
     document.body.appendChild(heatmapContainer);
+    
+    // Create loading overlay
+    const loadingOverlay = document.createElement('div');
+    loadingOverlay.style.cssText = `
+      position: fixed;
+      bottom: 20px;
+      right: 20px;
+      background: rgba(0, 0, 0, 0.8);
+      color: white;
+      padding: 12px 20px;
+      border-radius: 8px;
+      font-size: 14px;
+      font-family: system-ui, -apple-system, sans-serif;
+      z-index: 10001;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    `;
+    loadingOverlay.innerHTML = `
+      <div style="
+        width: 16px;
+        height: 16px;
+        border: 2px solid #fff;
+        border-top-color: transparent;
+        border-radius: 50%;
+        animation: spin 0.8s linear infinite;
+      "></div>
+      <span>Loading heatmap data...</span>
+      <style>
+        @keyframes spin {
+          to { transform: rotate(360deg); }
+        }
+      </style>
+    `;
+    document.body.appendChild(loadingOverlay);
+    loadingOverlayRef.current = loadingOverlay;
     
     // Initialize heatmap manager
     heatmapRef.current = new ClarityHeatmapManager({
@@ -134,6 +172,9 @@ export const PortfolioHeatmap = () => {
     
     // Load aggregated data from all users
     const loadAggregatedData = async () => {
+      const startTime = performance.now();
+      console.log('🔄 Starting to load heatmap data from database...');
+      
       try {
         // Fetch aggregated click data from database
         const aggregatedData = await heatmapDatabase.getAggregatedHeatmapData(
@@ -141,7 +182,12 @@ export const PortfolioHeatmap = () => {
           '7 days' // Show last 7 days of data
         );
         
+        const loadTime = performance.now() - startTime;
+        console.log(`✅ Heatmap data loaded in ${loadTime.toFixed(0)}ms`, aggregatedData);
+        
         if (aggregatedData && aggregatedData.length > 0) {
+          console.log(`📊 Processing ${aggregatedData.length} aggregated click points`);
+          
           // Convert aggregated data to click events
           const clicks = aggregatedData.flatMap(item => {
             // Create multiple clicks based on count for proper heat intensity
@@ -161,18 +207,26 @@ export const PortfolioHeatmap = () => {
           });
           
           if (clicks.length > 0) {
+            console.log(`🎨 Rendering ${clicks.length} heatmap points`);
             heatmapRef.current?.importData({
               type: 'click',
               clicks,
               timestamp: Date.now()
             });
           }
+        } else {
+          console.log('ℹ️ No heatmap data found in database');
         }
         
         // Also load any failed clicks from localStorage and retry
         await heatmapDatabase.retryFailedClicks();
       } catch (error) {
-        console.error('Failed to load aggregated heatmap data:', error);
+        console.error('❌ Failed to load aggregated heatmap data:', error);
+      } finally {
+        // Hide loading overlay
+        if (loadingOverlayRef.current) {
+          loadingOverlayRef.current.style.display = 'none';
+        }
       }
     };
     
@@ -203,6 +257,12 @@ export const PortfolioHeatmap = () => {
       
       // Remove container
       heatmapContainer.remove();
+      
+      // Remove loading overlay
+      if (loadingOverlayRef.current) {
+        loadingOverlayRef.current.remove();
+      }
+      
       isInitialized.current = false;
     };
   }, []);

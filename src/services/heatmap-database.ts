@@ -143,6 +143,9 @@ class HeatmapDatabaseService {
     pageUrl?: string,
     timeRange: string = '7 days'
   ): Promise<AggregatedClick[]> {
+    const startTime = performance.now();
+    console.log('🔍 Fetching heatmap data from Supabase...', { pageUrl, timeRange });
+    
     try {
       const { data, error } = await supabase
         .rpc('get_heatmap_data', {
@@ -150,15 +153,21 @@ class HeatmapDatabaseService {
           p_time_range: timeRange
         });
 
+      const queryTime = performance.now() - startTime;
+      console.log(`⏱️ Supabase query completed in ${queryTime.toFixed(0)}ms`);
+
       if (error) {
-        console.error('Failed to fetch heatmap data:', error);
+        console.warn('⚠️ Database function not found or error:', error);
+        console.log('📦 Falling back to localStorage data');
         // Fallback to localStorage data if database is not ready
         return this.getLocalStorageHeatmapData();
       }
 
+      console.log(`✅ Retrieved ${data?.length || 0} aggregated click points from database`);
       return data || [];
     } catch (error) {
-      console.error('Error fetching heatmap data:', error);
+      console.error('❌ Error fetching heatmap data:', error);
+      console.log('📦 Falling back to localStorage data');
       // Fallback to localStorage data if database is not ready
       return this.getLocalStorageHeatmapData();
     }
