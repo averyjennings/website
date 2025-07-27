@@ -11,7 +11,7 @@ import { StructuredData } from './components/seo/StructuredData';
 import { DynamicStructuredData } from './components/seo/DynamicStructuredData';
 import { MetricsTestComponent } from './components/dashboard/MetricsTestComponent';
 import { ActivityFeed, ContributionGraph, RepoStats, LanguageChart, GitHubStatus } from './components/github';
-import { HeatmapToggle } from './components/heatmap/HeatmapToggle';
+import { PortfolioHeatmap } from './components/heatmap/PortfolioHeatmap';
 import { HeatmapErrorBoundary } from './components/heatmap/HeatmapErrorBoundary';
 import { supabaseAnalyticsService } from '@/services/supabase-analytics';
 
@@ -79,7 +79,7 @@ function App() {
         </Layout>
         {/* Heatmap Analytics System - Outside Layout for full-site coverage */}
         <HeatmapErrorBoundary>
-          <HeatmapToggle />
+          <PortfolioHeatmap />
         </HeatmapErrorBoundary>
       </ThemeProvider>
     </SEOProvider>

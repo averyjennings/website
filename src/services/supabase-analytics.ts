@@ -94,6 +94,15 @@ class SupabaseAnalyticsService {
     return userId;
   }
 
+  // Public getters for heatmap integration
+  public getUserId(): string {
+    return this.userId;
+  }
+
+  public getSessionId(): string {
+    return this.sessionId;
+  }
+
   private getTimeRangeConfig(timeRange: '1h' | '24h' | '7d' | '30d'): TimeRangeConfig {
     const now = new Date();
     const ranges = {
