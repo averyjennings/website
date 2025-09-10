@@ -26,11 +26,11 @@ interface StructuredDataProps {
 export function StructuredData({ 
   projects = [], 
   type = 'person',
-  title = "Avery Jennings - Full-Stack Developer & Software Engineer",
-  description = "Avery Jennings is a passionate full-stack developer and software engineer specializing in React, TypeScript, Node.js, Python, and AWS. Explore my portfolio of innovative web applications and modern software solutions.",
-  url = "https://avery-portfolio-eosin.vercel.app/",
-  image = "https://avery-portfolio-eosin.vercel.app/og-image.jpg",
-  author = "Avery Jennings",
+  title = "Software Engineer - Full-Stack Developer",
+  description = "Passionate full-stack developer and software engineer specializing in React, TypeScript, Node.js, Python, and AWS. Explore my portfolio of innovative web applications and modern software solutions.",
+  url = "https://portfolio-eosin.vercel.app/",
+  image = "https://portfolio-eosin.vercel.app/og-image.jpg",
+  author = "Software Engineer",
   keywords = ["React", "TypeScript", "JavaScript", "Node.js", "Python", "AWS", "Full Stack Developer", "Software Engineer", "Web Development"],
   dateCreated = "2025-01-01",
   dateModified = "2025-01-25"
@@ -39,15 +39,15 @@ export function StructuredData({
   const getPersonStructuredData = () => ({
     "@context": "https://schema.org",
     "@type": "Person",
-    "name": "Avery Jennings",
+    "name": "Software Engineer",
     "jobTitle": "Full-Stack Developer & Software Engineer",
     "description": description,
     "url": url,
     "image": image,
     "sameAs": [
-      "https://github.com/averyjennings",
-      "https://linkedin.com/in/averyjennings",
-      "https://twitter.com/averyjennings"
+      "https://github.com/softwareengineer",
+      "https://linkedin.com/in/softwareengineer",
+      "https://twitter.com/softwareengineer"
     ],
     "knowsAbout": [
       "React",
@@ -91,7 +91,7 @@ export function StructuredData({
       "@type": "PostalAddress",
       "addressCountry": "US"
     },
-    "email": "contact@averyjennings.dev"
+    "email": "contact@softwareengineer.dev"
   });
 
   const getWebsiteStructuredData = () => ({

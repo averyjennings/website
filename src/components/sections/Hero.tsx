@@ -1,6 +1,7 @@
 import { motion } from 'framer-motion';
 import Button from '../ui/Button';
 import { useEffect, useState } from 'react';
+import { HeroCodeAnimation } from '../animations/HeroCodeAnimation';
 
 const Hero = () => {
   const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
@@ -101,7 +102,7 @@ const Hero = () => {
                   backgroundSize: "200% 200%",
                 }}
               >
-                Avery Jennings
+                Software Engineer
               </motion.span>
             </motion.h1>
           </motion.div>
@@ -146,6 +147,14 @@ const Hero = () => {
                 {tech}
               </motion.span>
             ))}
+          </motion.div>
+
+          {/* Code typing animation */}
+          <motion.div
+            variants={itemVariants}
+            className="mt-12 sm:mt-16 lg:mt-20 max-w-2xl mx-auto"
+          >
+            <HeroCodeAnimation />
           </motion.div>
         </motion.div>
 

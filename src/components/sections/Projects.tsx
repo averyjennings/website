@@ -1,10 +1,14 @@
 import { motion } from 'framer-motion';
 import ProjectCard from '../ui/ProjectCard';
-import { useState, useMemo, useCallback } from 'react';
+import { useState, useMemo, useCallback, lazy, Suspense } from 'react';
 import { useScrollAnimation } from '@/hooks/useScrollAnimation';
 import { useGitHubRepositories, useGitHubLanguages } from '@/hooks/useGitHubData';
 import { GitHubRepo } from '@/services/github-api';
 import { useDebounce } from '@/hooks/useDebounce';
+import Loading from '../ui/Loading';
+
+// Lazy load 3D gallery to reduce initial bundle size
+const ProjectGallery3D = lazy(() => import('../three/ProjectGallery3D').then(module => ({ default: module.ProjectGallery3D })));
 
 // Language to category mapping
 const LANGUAGE_TO_CATEGORY: Record<string, string> = {
@@ -80,6 +84,7 @@ const Projects = () => {
   const [activityFilter, setActivityFilter] = useState('all'); // all, recent, year
   const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  const [viewMode, setViewMode] = useState<'2d' | '3d'>('2d');
   const { ref: sectionRef, isInView } = useScrollAnimation({ threshold: 0.1 });
   
   // Debounce search query to avoid excessive filtering
@@ -722,38 +727,95 @@ const Projects = () => {
           </motion.div>
         )}
         
-        {/* Projects Grid */}
-        {!isLoading && !hasError && (
+        {/* View Mode Toggle */}
+        {!isLoading && !hasError && filteredProjects.length > 0 && (
           <motion.div 
-            className="grid md:grid-cols-2 lg:grid-cols-3 gap-8"
-            variants={containerVariants}
-            initial="hidden"
-            animate={isInView ? "visible" : "hidden"}
-            layout
+            className="flex justify-center gap-2 mb-8"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.2 }}
           >
-            {filteredProjects.map((project, index) => (
-              <motion.div
-                key={project.title}
-                layout
-                initial={{ opacity: 0, scale: 0.8 }}
-                animate={{ opacity: 1, scale: 1 }}
-                exit={{ opacity: 0, scale: 0.8 }}
-                transition={{ 
-                  duration: 0.3,
-                  delay: index * 0.05,
-                  layout: {
-                    type: "spring",
-                    bounce: 0.4,
-                  },
-                }}
-              >
-                <ProjectCard
-                  {...project}
-                  index={index}
-                />
-              </motion.div>
-            ))}
+            <button
+              onClick={() => setViewMode('2d')}
+              className={`px-4 py-2 rounded-lg font-medium transition-all ${
+                viewMode === '2d'
+                  ? 'bg-primary-600 text-white shadow-lg'
+                  : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600'
+              }`}
+            >
+              <span className="flex items-center gap-2">
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" />
+                </svg>
+                Grid View
+              </span>
+            </button>
+            <button
+              onClick={() => setViewMode('3d')}
+              className={`px-4 py-2 rounded-lg font-medium transition-all ${
+                viewMode === '3d'
+                  ? 'bg-primary-600 text-white shadow-lg'
+                  : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600'
+              }`}
+            >
+              <span className="flex items-center gap-2">
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
+                </svg>
+                3D Gallery
+              </span>
+            </button>
           </motion.div>
+        )}
+
+        {/* Projects Display */}
+        {!isLoading && !hasError && (
+          viewMode === '3d' ? (
+            <Suspense fallback={<Loading text="Loading 3D Gallery..." />}>
+              <ProjectGallery3D 
+                projects={filteredProjects.map((project, index) => ({
+                  id: `${project.title}-${index}`,
+                  title: project.title,
+                  description: project.description,
+                  technologies: project.technologies,
+                  github: project.github,
+                  live: project.demo,
+                  featured: project.featured,
+                }))}
+              />
+            </Suspense>
+          ) : (
+            <motion.div 
+              className="grid md:grid-cols-2 lg:grid-cols-3 gap-8"
+              variants={containerVariants}
+              initial="hidden"
+              animate={isInView ? "visible" : "hidden"}
+              layout
+            >
+              {filteredProjects.map((project, index) => (
+                <motion.div
+                  key={project.title}
+                  layout
+                  initial={{ opacity: 0, scale: 0.8 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  exit={{ opacity: 0, scale: 0.8 }}
+                  transition={{ 
+                    duration: 0.3,
+                    delay: index * 0.05,
+                    layout: {
+                      type: "spring",
+                      bounce: 0.4,
+                    },
+                  }}
+                >
+                  <ProjectCard
+                    {...project}
+                    index={index}
+                  />
+                </motion.div>
+              ))}
+            </motion.div>
+          )
         )}
         
         {/* No projects message */}

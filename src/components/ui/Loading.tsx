@@ -1,12 +1,21 @@
 import { motion } from 'framer-motion';
+import Lottie from 'lottie-react';
+import loadingAnimation from '@/assets/animations/loading-dots.json';
 
 interface LoadingProps {
   size?: 'sm' | 'md' | 'lg';
   text?: string;
+  useLottie?: boolean;
 }
 
-const Loading = ({ size = 'md', text }: LoadingProps) => {
+const Loading = ({ size = 'md', text, useLottie = true }: LoadingProps) => {
   const sizes = {
+    sm: 40,
+    md: 60,
+    lg: 80,
+  };
+
+  const oldSizes = {
     sm: 'w-8 h-8',
     md: 'w-12 h-12',
     lg: 'w-16 h-16',
@@ -14,14 +23,22 @@ const Loading = ({ size = 'md', text }: LoadingProps) => {
 
   return (
     <div className="flex flex-col items-center justify-center p-8">
-      <motion.div
-        className={`${sizes[size]} relative`}
-        animate={{ rotate: 360 }}
-        transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
-      >
-        <div className="absolute inset-0 rounded-full border-4 border-gray-200 dark:border-gray-700" />
-        <div className="absolute inset-0 rounded-full border-4 border-primary-600 border-t-transparent" />
-      </motion.div>
+      {useLottie ? (
+        <Lottie
+          animationData={loadingAnimation}
+          loop
+          style={{ width: sizes[size], height: sizes[size] }}
+        />
+      ) : (
+        <motion.div
+          className={`${oldSizes[size]} relative`}
+          animate={{ rotate: 360 }}
+          transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+        >
+          <div className="absolute inset-0 rounded-full border-4 border-gray-200 dark:border-gray-700" />
+          <div className="absolute inset-0 rounded-full border-4 border-primary-600 border-t-transparent" />
+        </motion.div>
+      )}
       {text && (
         <motion.p
           initial={{ opacity: 0 }}

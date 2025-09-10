@@ -41,7 +41,8 @@
       "mcp__playwright__browser_press_key",
       "Bash(npm run test:heatmap:quick:*)",
       "Bash(npx playwright:*)",
-      "WebFetch(domain:raw.githubusercontent.com)"
+      "WebFetch(domain:raw.githubusercontent.com)",
+      "Bash(grep:*)"
     ],
     "deny": []
   }

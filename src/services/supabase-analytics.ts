@@ -947,7 +947,7 @@ class SupabaseAnalyticsService {
     }
   }
 
-  private recordMetricLocalStorage(metric: any): void {
+  private recordMetricLocalStorage(_metric: any): void {
     // Metric is already stored by storeMetricLocally
     console.log('📦 Metric recorded in localStorage');
   }

@@ -32,7 +32,7 @@ export function DynamicStructuredData({ projects = [], sectionType }: DynamicStr
         "@context": "https://schema.org",
         "@type": "ItemList",
         "name": "Software Development Projects",
-        "description": "A collection of software projects by Avery Jennings",
+        "description": "A collection of software projects by Software Engineer",
         "itemListElement": projects.map((project, index) => ({
           "@type": "SoftwareApplication",
           "position": index + 1,
@@ -50,7 +50,7 @@ export function DynamicStructuredData({ projects = [], sectionType }: DynamicStr
           } : undefined,
           "creator": {
             "@type": "Person", 
-            "name": "Avery Jennings"
+            "name": "Software Engineer"
           }
         }))
       };
@@ -60,9 +60,9 @@ export function DynamicStructuredData({ projects = [], sectionType }: DynamicStr
         "@type": "ProfilePage",
         "mainEntity": {
           "@type": "Person",
-          "name": "Avery Jennings",
+          "name": "Software Engineer",
           "sameAs": [
-            "https://github.com/averyjennings"
+            "https://github.com/softwareengineer"
           ],
           "hasOccupation": {
             "@type": "Occupation",
@@ -109,7 +109,7 @@ export function DynamicStructuredData({ projects = [], sectionType }: DynamicStr
 export function useSEO(title?: string, description?: string) {
   useEffect(() => {
     if (title) {
-      document.title = `${title} | Avery Jennings - Full-Stack Developer`;
+      document.title = `${title} | Software Engineer - Full-Stack Developer`;
     }
 
     // Update meta description if provided

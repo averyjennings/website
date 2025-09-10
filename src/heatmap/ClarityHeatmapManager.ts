@@ -14,6 +14,9 @@ export interface HeatmapOptions {
   gridSize?: number;
   minClicks?: number;
   maxClicks?: number;
+  maxIntensity?: number;
+  scaleMode?: 'linear' | 'logarithmic' | 'sqrt';
+  intensityRange?: { min: number; max: number };
 }
 
 export interface ClickEvent {
@@ -35,11 +38,14 @@ export class ClarityHeatmapManager {
   
   constructor(options: HeatmapOptions) {
     
-    // Initialize renderer
-    this.renderer = new ClarityHeatmapRenderer({
+    // Initialize renderer with all options including scaling settings
+    this.renderer = new ClarityHeatmapRenderer(options.container, {
       radius: options.radius,
       opacity: options.opacity,
-      gradient: options.gradient
+      gradient: options.gradient,
+      maxIntensity: options.maxIntensity,
+      scaleMode: options.scaleMode,
+      intensityRange: options.intensityRange
     });
     
     // Initialize data processor
@@ -107,12 +113,15 @@ export class ClarityHeatmapManager {
   }
   
   /**
-   * Update heatmap configuration
+   * Update heatmap configuration including scaling options
    */
   public updateConfig(config: {
     radius?: number;
     opacity?: number;
     gradient?: string[];
+    maxIntensity?: number;
+    scaleMode?: 'linear' | 'logarithmic' | 'sqrt';
+    intensityRange?: { min: number; max: number };
   }): void {
     this.renderer.updateConfig(config);
     this.render();

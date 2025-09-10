@@ -1,6 +1,7 @@
 import { motion, useAnimation } from 'framer-motion';
 import { useScrollAnimation } from '@/hooks/useScrollAnimation';
 import { useEffect } from 'react';
+import { ParticlesAnimation } from '@/components/animations/ParticlesAnimation';
 
 const About = () => {
   const skills = [
@@ -60,6 +61,9 @@ const About = () => {
         <div className="absolute -top-1/2 -right-1/2 w-[800px] h-[800px] rounded-full bg-gradient-to-br from-primary-100/20 to-secondary-100/20 dark:from-primary-900/10 dark:to-secondary-900/10 blur-3xl" />
         <div className="absolute -bottom-1/2 -left-1/2 w-[800px] h-[800px] rounded-full bg-gradient-to-tr from-secondary-100/20 to-primary-100/20 dark:from-secondary-900/10 dark:to-primary-900/10 blur-3xl" />
       </div>
+
+      {/* Animated particles background */}
+      <ParticlesAnimation />
 
       <div className="container mx-auto px-4 sm:px-6 lg:px-8 xl:px-12 relative z-10">
         <motion.div

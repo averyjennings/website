@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { motion } from 'framer-motion';
 import { ThemeToggle } from '@/components/ui/ThemeToggle';
+import { HeatmapToggle } from '@/components/ui/HeatmapToggle';
 
 const Header = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -46,11 +47,15 @@ const Header = () => {
                 </motion.a>
               ))}
             </div>
-            <ThemeToggle />
+            <div className="flex items-center space-x-2">
+              <HeatmapToggle />
+              <ThemeToggle />
+            </div>
           </div>
 
           {/* Mobile menu button and theme toggle */}
           <div className="flex items-center space-x-1 sm:hidden">
+            <HeatmapToggle />
             <ThemeToggle />
             <button
               onClick={() => setIsMenuOpen(!isMenuOpen)}

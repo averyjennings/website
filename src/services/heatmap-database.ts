@@ -19,11 +19,19 @@ export interface AggregatedClick {
   click_count: number;
 }
 
+export interface PaginatedHeatmapData {
+  data: AggregatedClick[];
+  hasMore: boolean;
+  nextOffset: number;
+}
+
 class HeatmapDatabaseService {
   private batchedClicks: HeatmapClick[] = [];
   private batchTimer: NodeJS.Timeout | null = null;
   private readonly BATCH_SIZE = 10;
   private readonly BATCH_DELAY = 2000; // 2 seconds
+  private dataCache = new Map<string, { data: AggregatedClick[], timestamp: number }>();
+  private readonly CACHE_TTL = 60000; // 1 minute cache
 
   /**
    * Record a click in the database (batched for performance)
@@ -137,7 +145,80 @@ class HeatmapDatabaseService {
   }
 
   /**
-   * Get aggregated heatmap data for all users
+   * Get aggregated heatmap data for all users with pagination support
+   */
+  async getAggregatedHeatmapDataPaginated(
+    pageUrl?: string,
+    timeRange: string = '7 days',
+    limit: number = 100,
+    offset: number = 0
+  ): Promise<PaginatedHeatmapData> {
+    const cacheKey = `${pageUrl || 'all'}-${timeRange}-${limit}-${offset}`;
+    const cached = this.dataCache.get(cacheKey);
+    
+    // Return cached data if still fresh
+    if (cached && Date.now() - cached.timestamp < this.CACHE_TTL) {
+      return {
+        data: cached.data,
+        hasMore: cached.data.length === limit,
+        nextOffset: offset + limit
+      };
+    }
+
+    const startTime = performance.now();
+    console.log('🔍 Fetching paginated heatmap data...', { pageUrl, timeRange, limit, offset });
+    
+    try {
+      const { data, error } = await supabase
+        .rpc('get_heatmap_data_paginated', {
+          p_page_url: pageUrl || window.location.pathname,
+          p_time_range: timeRange,
+          p_limit: limit,
+          p_offset: offset
+        });
+
+      const queryTime = performance.now() - startTime;
+      console.log(`⏱️ Paginated query completed in ${queryTime.toFixed(0)}ms`);
+
+      if (error) {
+        console.warn('⚠️ Falling back to non-paginated query:', error);
+        // Fallback to regular query
+        const allData = await this.getAggregatedHeatmapData(pageUrl, timeRange);
+        const paginatedData = allData.slice(offset, offset + limit);
+        return {
+          data: paginatedData,
+          hasMore: allData.length > offset + limit,
+          nextOffset: offset + limit
+        };
+      }
+
+      const aggregatedData = data || [];
+      
+      // Cache the results
+      this.dataCache.set(cacheKey, {
+        data: aggregatedData,
+        timestamp: Date.now()
+      });
+
+      console.log(`✅ Retrieved ${aggregatedData.length} points (page ${Math.floor(offset / limit) + 1})`);
+      
+      return {
+        data: aggregatedData,
+        hasMore: aggregatedData.length === limit,
+        nextOffset: offset + limit
+      };
+    } catch (error) {
+      console.error('❌ Error fetching paginated data:', error);
+      return {
+        data: [],
+        hasMore: false,
+        nextOffset: offset
+      };
+    }
+  }
+
+  /**
+   * Get aggregated heatmap data for all users (legacy method)
    */
   async getAggregatedHeatmapData(
     pageUrl?: string,
@@ -171,6 +252,58 @@ class HeatmapDatabaseService {
       // Fallback to localStorage data if database is not ready
       return this.getLocalStorageHeatmapData();
     }
+  }
+
+  /**
+   * Get heatmap data for visible viewport area only
+   */
+  async getViewportHeatmapData(
+    viewport: { top: number; bottom: number; left: number; right: number },
+    pageUrl?: string,
+    timeRange: string = '7 days'
+  ): Promise<AggregatedClick[]> {
+    const startTime = performance.now();
+    console.log('🔍 Fetching viewport-specific heatmap data...', viewport);
+    
+    try {
+      const { data, error } = await supabase
+        .rpc('get_heatmap_data_viewport', {
+          p_page_url: pageUrl || window.location.pathname,
+          p_time_range: timeRange,
+          p_top: viewport.top,
+          p_bottom: viewport.bottom,
+          p_left: viewport.left,
+          p_right: viewport.right
+        });
+
+      const queryTime = performance.now() - startTime;
+      console.log(`⏱️ Viewport query completed in ${queryTime.toFixed(0)}ms`);
+
+      if (error) {
+        console.warn('⚠️ Viewport query failed, using full data:', error);
+        // Fallback to full data and filter client-side
+        const allData = await this.getAggregatedHeatmapData(pageUrl, timeRange);
+        return allData.filter(click => 
+          click.x >= viewport.left && 
+          click.x <= viewport.right && 
+          click.y >= viewport.top && 
+          click.y <= viewport.bottom
+        );
+      }
+
+      console.log(`✅ Retrieved ${data?.length || 0} viewport clicks`);
+      return data || [];
+    } catch (error) {
+      console.error('❌ Error fetching viewport data:', error);
+      return [];
+    }
+  }
+
+  /**
+   * Clear the data cache
+   */
+  clearCache(): void {
+    this.dataCache.clear();
   }
 
   /**

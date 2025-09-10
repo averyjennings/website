@@ -91,15 +91,15 @@ mcp__playwright__browser_resize(width, height)
 Playwright MCP can be used to manage Vercel deployments through the web interface. This is particularly useful for monitoring deployment status, accessing deployment logs, and managing project settings.
 
 ### Key Deployment URLs
-- **Project Dashboard**: `https://vercel.com/avery-jennings-projects/avery-portfolio`
-- **Live Website**: `https://avery-portfolio-eosin.vercel.app/`
-- **GitHub Repository**: `https://github.com/averyjennings/website`
+- **Project Dashboard**: `https://vercel.com/projects/portfolio`
+- **Live Website**: `https://portfolio-eosin.vercel.app/`
+- **GitHub Repository**: `https://github.com/softwareengineer/website`
 
 ### Deployment Workflow with Playwright
 
 1. **Navigate to Vercel Project**:
    ```javascript
-   mcp__playwright__browser_navigate("https://vercel.com/avery-jennings-projects/avery-portfolio")
+   mcp__playwright__browser_navigate("https://vercel.com/projects/portfolio")
    ```
 
 2. **Monitor Deployment Status**:
@@ -147,20 +147,32 @@ npm run preview
 # Type checking
 npm run type-check
 
-# Linting
+# Linting (ESLint with TypeScript support)
 npm run lint
+
+# Testing with Playwright
+npm run test                      # Run all Playwright tests
+npm run test:heatmap              # Standard heatmap test suite
+npm run test:heatmap:quick        # Quick heatmap validation
+npm run test:heatmap:full         # Comprehensive heatmap testing
+npm run test:heatmap:load         # Performance load testing
+npm run test:headed               # Run tests with browser visible
+npm run test:debug                # Debug tests interactively
 ```
 
 ## Architecture & Key Features
 
 ### Tech Stack
 - **Frontend Framework**: React 19 with TypeScript
-- **Build Tool**: Vite 7
+- **Build Tool**: Vite 7 with ESLint/Prettier
 - **Styling**: Tailwind CSS 4 with PostCSS
 - **State Management**: Zustand for global state, TanStack Query for server state
-- **Animation**: Framer Motion
-- **Data Visualization**: Chart.js + react-chartjs-2, D3.js
-- **Performance Monitoring**: Web Vitals
+- **Animation**: Framer Motion, Lottie React
+- **3D Graphics**: Three.js with React Three Fiber + Drei
+- **Data Visualization**: Chart.js + react-chartjs-2 (with zoom/annotation plugins), D3.js
+- **Analytics**: Web Vitals, Vercel Analytics, Custom Supabase Analytics
+- **Database**: Supabase (PostgreSQL) for analytics & heatmap data
+- **Testing**: Playwright with comprehensive test suite
 
 ### Path Aliases
 The project uses TypeScript path aliases configured in both `tsconfig.json` and `vite.config.ts`:
@@ -175,9 +187,30 @@ The project uses TypeScript path aliases configured in both `tsconfig.json` and 
 src/components/
 ├── layout/          # Header, Footer, Navigation
 ├── sections/        # Hero, About, Projects, Contact
-├── ui/              # Reusable UI components (Button, Card, etc.)
-├── dashboard/       # Performance Dashboard components
-└── github/          # GitHub Integration components
+├── ui/              # Reusable UI components (Button, Card, Loading spinners)
+├── dashboard/       # Performance Dashboard components (MetricsChart, MetricsTestComponent)
+├── github/          # GitHub Integration (ActivityFeed, ContributionGraph, RepoStats, LanguageChart)
+├── heatmap/         # Heatmap analytics (PortfolioHeatmap, HeatmapErrorBoundary)
+├── animations/      # Lottie & Framer Motion animations
+├── three/           # 3D components (ParticleField)
+├── seo/             # SEO components (StructuredData, DynamicStructuredData)
+└── providers/       # Context providers (ThemeProvider)
+```
+
+### Key Systems
+```
+src/
+├── heatmap/         # Microsoft Clarity-style heatmap implementation
+│   ├── ClarityHeatmapManager.ts    # Main heatmap orchestrator
+│   ├── ClarityHeatmapRenderer.ts   # Canvas rendering engine
+│   └── HeatmapDataProcessor.ts     # Data processing & optimization
+├── services/
+│   ├── supabase-analytics.ts       # Analytics service with Supabase integration
+│   ├── github-api.ts               # GitHub API integration with caching
+│   ├── heatmap-database.ts         # Heatmap data persistence
+│   └── analytics.ts                # Web Vitals & performance metrics
+└── lib/
+    └── supabase.ts                  # Supabase client configuration
 ```
 
 ### Priority Features Implementation Status
@@ -194,11 +227,24 @@ src/components/
    - Repository statistics
    - Components: `ActivityFeed`, `ContributionGraph`, `RepoStats`, `LanguageChart`
 
+### Updated Feature Priority (Visual-First Approach)
+
+After completing the above priority features, the implementation order has been updated to prioritize visual and interactive showcases:
+
+1. **Enhanced Performance Dashboard** (2 days) - Chart.js plugins for zoom, pan, annotations
+2. **Lottie Animations Integration** (2-3 days) - Professional After Effects animations
+3. **3D Project Gallery** (4-5 days) - Three.js/React Three Fiber immersive experience
+4. **Algorithm Visualizer** (4-5 days) - D3.js interactive CS fundamentals
+5. **Live Code Playground** (3-4 days) - Monaco Editor (VS Code in browser)
+6. **Terminal Interface** (3-4 days) - Xterm.js CLI portfolio navigation
+
 ### Environment Variables
 Required environment variables (set in `.env.local`):
 ```
 VITE_GITHUB_USERNAME=yourusername
 VITE_GA_ID=your-ga-id
+VITE_SUPABASE_URL=your-supabase-url
+VITE_SUPABASE_ANON_KEY=your-supabase-anon-key
 ```
 
 ### Development Timeline Context
@@ -226,12 +272,20 @@ The project is designed to be deployed on Vercel with:
 
 ### Current Implementation Status
 - ✅ Project setup with Vite + React + TypeScript
-- ✅ Tailwind CSS configured
-- ✅ All dependencies installed
-- ✅ Folder structure created
-- ✅ Environment variables configured
-- ⏳ Core components need implementation
-- ⏳ Priority features pending
+- ✅ Tailwind CSS configured with dark mode support
+- ✅ All dependencies installed (including Three.js, Chart.js, D3.js, Lottie)
+- ✅ Complete folder structure with all components
+- ✅ Environment variables configured for GitHub & Supabase
+- ✅ SEO components with structured data
+- ✅ GitHub Integration Suite fully implemented
+- ✅ Performance Dashboard with Web Vitals tracking
+- ✅ Microsoft Clarity-style heatmap with database integration
+- ✅ 3D particle effects with Three.js
+- ✅ Comprehensive Playwright test suite
+- ✅ Vercel deployment configured with security headers
+- ✅ Supabase analytics service with real-time data
+- 🚧 Enhanced chart visualizations in progress
+- 🚧 Additional Lottie animations planned
 
 ## Website Development Communication
 
@@ -241,8 +295,24 @@ The project is designed to be deployed on Vercel with:
 - Each commit in the patch notes should be labeled with its commit hash
 - Update patch notes after every significant change or commit to the website project
 
-## MCP Tool Verification
+## Testing Configuration
 
-- You verify websites with your mcp tool
-```
+### Playwright Test Suite
+The project includes a comprehensive Playwright testing framework configured in `playwright.config.ts`:
+- **Test Profiles**: Desktop (Chrome, Firefox, Safari), Tablet (iPad, Android), Mobile (iPhone, Android)
+- **Special Tests**: Performance testing, High DPI testing, Accessibility testing
+- **Heatmap Tests**: Located in `tests/` directory with multiple test scenarios
+- **Test Runner**: Uses `scripts/run-heatmap-tests.js` for different test modes (quick, standard, full)
+- **Web Server**: Automatically starts dev server on port 5173 for testing
+
+### Running Tests
+```bash
+# Before running tests for the first time
+npm run test:install    # Install Playwright browsers
+
+# Run specific test suites
+npm run test:heatmap:quick   # Quick validation
+npm run test:heatmap         # Standard suite
+npm run test:heatmap:full    # Comprehensive testing
+npm run test:report          # View test results
 ```

@@ -1,35 +1,45 @@
-/**
- * Heatmap Renderer based on Microsoft Clarity's implementation
- * Uses offscreen canvas optimization and gradient colorization
- */
-
-interface HeatmapPoint {
+export interface HeatmapPoint {
   x: number;
   y: number;
   value: number;
 }
 
-interface HeatmapConfig {
+export interface HeatmapConfig {
   radius?: number;
   opacity?: number;
   gradient?: string[];
+  maxIntensity?: number;
+  scaleMode?: 'linear' | 'logarithmic' | 'sqrt';
+  intensityRange?: { min: number; max: number };
 }
 
+/**
+ * Microsoft Clarity-style heatmap renderer
+ * Optimized for high performance with GPU acceleration
+ */
 export class ClarityHeatmapRenderer {
   private canvas: HTMLCanvasElement;
   private ctx: CanvasRenderingContext2D;
   private offscreenRing: HTMLCanvasElement;
   private gradientCanvas: HTMLCanvasElement;
   private gradientData!: Uint8ClampedArray;
+  private container: HTMLElement;
   
   private radius: number = 25;
   private opacity: number = 0.8;
   private gradientColors: string[] = ["blue", "cyan", "lime", "yellow", "red"];
+  private maxIntensity: number = 1000; // Default max intensity for normalization
+  private scaleMode: 'linear' | 'logarithmic' | 'sqrt' = 'logarithmic';
+  private intensityRange = { min: 0.1, max: 1.0 }; // Min/max opacity range
   
-  constructor(config: HeatmapConfig = {}) {
+  constructor(container: HTMLElement, config: HeatmapConfig = {}) {
+    this.container = container;
     this.radius = config.radius || this.radius;
     this.opacity = config.opacity || this.opacity;
     this.gradientColors = config.gradient || this.gradientColors;
+    this.maxIntensity = config.maxIntensity || this.maxIntensity;
+    this.scaleMode = config.scaleMode || this.scaleMode;
+    this.intensityRange = config.intensityRange || this.intensityRange;
     
     // Create main canvas
     this.canvas = document.createElement('canvas');
@@ -48,12 +58,15 @@ export class ClarityHeatmapRenderer {
     // Handle device pixel ratio for crisp rendering on mobile
     const dpr = window.devicePixelRatio || 1;
     
-    this.canvas.width = window.innerWidth * dpr;
+    // Use document.documentElement.clientWidth to avoid scrollbar width
+    const viewportWidth = document.documentElement.clientWidth;
+    
+    this.canvas.width = viewportWidth * dpr;
     this.canvas.height = fullHeight * dpr;
     this.canvas.style.position = 'absolute';
     this.canvas.style.top = '0';
     this.canvas.style.left = '0';
-    this.canvas.style.width = '100%';
+    this.canvas.style.width = viewportWidth + 'px';
     this.canvas.style.height = fullHeight + 'px';
     this.canvas.style.pointerEvents = 'none';
     this.canvas.style.zIndex = '10000';
@@ -61,8 +74,8 @@ export class ClarityHeatmapRenderer {
     // Scale context for device pixel ratio
     this.ctx.scale(dpr, dpr);
     
-    // Append to body for full viewport coverage
-    document.body.appendChild(this.canvas);
+    // Append to container instead of body
+    this.container.appendChild(this.canvas);
     
     // Add a class for debugging
     this.canvas.className = 'heatmap-canvas';
@@ -98,33 +111,34 @@ export class ClarityHeatmapRenderer {
     gradient.addColorStop(0, 'rgba(0, 0, 0, 1)');
     gradient.addColorStop(1, 'rgba(0, 0, 0, 0)');
     
-    // Draw circle with gradient
+    // Draw circle
     ctx.fillStyle = gradient;
     ctx.fillRect(0, 0, size, size);
-    
-    // Apply shadow blur for smoother effect
-    ctx.shadowBlur = this.radius / 3;
-    ctx.shadowColor = 'black';
   }
   
   private createGradientLookup(): void {
-    this.gradientCanvas.width = 1;
-    this.gradientCanvas.height = 256;
+    this.gradientCanvas.width = 256;
+    this.gradientCanvas.height = 1;
     
     const ctx = this.gradientCanvas.getContext('2d')!;
-    const gradient = ctx.createLinearGradient(0, 0, 0, 256);
+    const gradient = ctx.createLinearGradient(0, 0, 256, 0);
     
-    // Create gradient stops
-    const stops = this.gradientColors.length;
-    for (let i = 0; i < stops; i++) {
-      gradient.addColorStop(i / (stops - 1), this.gradientColors[i]);
+    // Build gradient from color stops
+    const colorStops = this.gradientColors.length;
+    for (let i = 0; i < colorStops; i++) {
+      gradient.addColorStop(i / (colorStops - 1), this.gradientColors[i]);
     }
     
     ctx.fillStyle = gradient;
-    ctx.fillRect(0, 0, 1, 256);
+    ctx.fillRect(0, 0, 256, 1);
     
-    // Store gradient data for fast lookup
-    this.gradientData = ctx.getImageData(0, 0, 1, 256).data;
+    // Extract gradient data for fast lookup
+    const imageData = ctx.getImageData(0, 0, 256, 1);
+    this.gradientData = imageData.data;
+  }
+  
+  public getCanvas(): HTMLCanvasElement {
+    return this.canvas;
   }
   
   public render(points: HeatmapPoint[]): void {
@@ -143,19 +157,51 @@ export class ClarityHeatmapRenderer {
     // Create temporary canvas for grayscale rendering
     const tempCanvas = document.createElement('canvas');
     const dpr = window.devicePixelRatio || 1;
-    tempCanvas.width = window.innerWidth;
+    const viewportWidth = document.documentElement.clientWidth;
+    tempCanvas.width = viewportWidth;
     tempCanvas.height = this.canvas.height / dpr;
     const tempCtx = tempCanvas.getContext('2d')!;
     
     // Find max value for normalization
     const maxValue = Math.max(...points.map(p => p.value), 1);
+    const dynamicMax = Math.max(maxValue, this.maxIntensity);
+    
+    // Log scaling info for debugging
+    if (points.length > 0) {
+      const totalClicks = points.reduce((sum, p) => sum + p.value, 0);
+      console.log(`🔥 Heatmap rendering: ${points.length} points, ${totalClicks} total clicks, max: ${maxValue}, scale: ${this.scaleMode}`);
+    }
     
     // Draw all points in grayscale
     tempCtx.globalCompositeOperation = 'lighter';
     
     for (const point of points) {
-      const alpha = (point.value / maxValue) * this.opacity;
-      tempCtx.globalAlpha = alpha;
+      // Calculate intensity based on scale mode
+      let intensity: number;
+      
+      switch (this.scaleMode) {
+        case 'logarithmic':
+          // Logarithmic scaling for better distribution across wide ranges
+          // Add 1 to avoid log(0)
+          intensity = Math.log(point.value + 1) / Math.log(dynamicMax + 1);
+          break;
+          
+        case 'sqrt':
+          // Square root scaling - less aggressive than log
+          intensity = Math.sqrt(point.value) / Math.sqrt(dynamicMax);
+          break;
+          
+        case 'linear':
+        default:
+          // Original linear scaling
+          intensity = point.value / dynamicMax;
+          break;
+      }
+      
+      // Map intensity to opacity range
+      const { min, max } = this.intensityRange;
+      const alpha = (min + (intensity * (max - min))) * this.opacity;
+      tempCtx.globalAlpha = Math.min(1, alpha);
       
       // Draw pre-rendered ring at point location
       tempCtx.drawImage(
@@ -184,7 +230,12 @@ export class ClarityHeatmapRenderer {
     }
     
     // Draw colorized result
-    this.ctx.putImageData(imageData, 0, 0);
+    // Note: putImageData ignores the canvas transform, so we need to account for DPR
+    tempCtx.putImageData(imageData, 0, 0);
+    
+    // Draw the temp canvas onto the main canvas
+    // The main canvas has scale(dpr, dpr) applied, so we draw at 1:1
+    this.ctx.drawImage(tempCanvas, 0, 0);
   }
   
   public clear(): void {
@@ -209,9 +260,11 @@ export class ClarityHeatmapRenderer {
     );
     
     const dpr = window.devicePixelRatio || 1;
+    const viewportWidth = document.documentElement.clientWidth;
     
-    this.canvas.width = window.innerWidth * dpr;
+    this.canvas.width = viewportWidth * dpr;
     this.canvas.height = fullHeight * dpr;
+    this.canvas.style.width = viewportWidth + 'px';
     this.canvas.style.height = fullHeight + 'px';
     
     // Reset and scale context for device pixel ratio
@@ -232,6 +285,18 @@ export class ClarityHeatmapRenderer {
     if (config.gradient) {
       this.gradientColors = config.gradient;
       this.createGradientLookup();
+    }
+    
+    if (config.maxIntensity !== undefined) {
+      this.maxIntensity = config.maxIntensity;
+    }
+    
+    if (config.scaleMode) {
+      this.scaleMode = config.scaleMode;
+    }
+    
+    if (config.intensityRange) {
+      this.intensityRange = config.intensityRange;
     }
   }
   

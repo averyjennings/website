@@ -1,13 +1,24 @@
-import { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { ClarityHeatmapManager, ClickEvent } from '@/heatmap/ClarityHeatmapManager';
 import { heatmapDatabase } from '@/services/heatmap-database';
 import { supabaseAnalyticsService } from '@/services/supabase-analytics';
+import { debounce, RequestBatcher, RAFScheduler } from '@/utils/performance';
+import { useHeatmapStore } from '@/store/heatmap';
 
-export const PortfolioHeatmap = () => {
+export const PortfolioHeatmap = React.memo(() => {
   const containerRef = useRef<HTMLDivElement>(null);
   const heatmapRef = useRef<ClarityHeatmapManager | null>(null);
   const isInitialized = useRef(false);
   const loadingOverlayRef = useRef<HTMLDivElement | null>(null);
+  const clickBatcherRef = useRef<RequestBatcher<any> | null>(null);
+  const rafSchedulerRef = useRef<RAFScheduler | null>(null);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
+  const [hasMoreData, setHasMoreData] = useState(true);
+  const currentOffsetRef = useRef(0);
+  const loadedDataRef = useRef(new Set<string>());
+  
+  // Get heatmap visibility state from store
+  const isVisible = useHeatmapStore((state) => state.isVisible);
   
   useEffect(() => {
     if (!containerRef.current || isInitialized.current) return;
@@ -28,9 +39,12 @@ export const PortfolioHeatmap = () => {
       top: 0;
       left: 0;
       width: 100%;
+      max-width: 100vw;
       height: ${fullHeight}px;
       pointer-events: none;
       z-index: 9999;
+      display: ${isVisible ? 'block' : 'none'};
+      overflow: hidden;
     `;
     document.body.appendChild(heatmapContainer);
     
@@ -47,7 +61,7 @@ export const PortfolioHeatmap = () => {
       font-size: 14px;
       font-family: system-ui, -apple-system, sans-serif;
       z-index: 10001;
-      display: flex;
+      display: ${isVisible ? 'flex' : 'none'};
       align-items: center;
       gap: 10px;
       box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
@@ -71,18 +85,34 @@ export const PortfolioHeatmap = () => {
     document.body.appendChild(loadingOverlay);
     loadingOverlayRef.current = loadingOverlay;
     
-    // Initialize heatmap manager
+    // Initialize heatmap manager with logarithmic scaling for millions of clicks
     heatmapRef.current = new ClarityHeatmapManager({
       container: heatmapContainer,
       radius: 35,
       opacity: 0.8,
-      gradient: ["blue", "cyan", "lime", "yellow", "red"]
+      gradient: ["blue", "cyan", "lime", "yellow", "red"],
+      maxIntensity: 10000, // Support up to 10k clicks per point
+      scaleMode: 'logarithmic', // Use logarithmic scaling for better distribution
+      intensityRange: { min: 0.05, max: 0.95 } // Wider range for visibility
     });
+    
+    // Initialize request batcher for click events
+    clickBatcherRef.current = new RequestBatcher(
+      async (clicks) => {
+        // Batch process click events to database
+        await Promise.all(clicks.map(click => heatmapDatabase.recordClick(click)));
+      },
+      25, // Batch size
+      50  // Max wait time in ms
+    );
+    
+    // Initialize RAF scheduler for canvas updates
+    rafSchedulerRef.current = new RAFScheduler();
     
     isInitialized.current = true;
     
-    // Enable heatmap visibility
-    heatmapRef.current.setVisible(true);
+    // Set initial heatmap visibility based on store state
+    heatmapRef.current.setVisible(isVisible);
     
     // Handle clicks and touches
     const handleInteraction = (e: MouseEvent | TouchEvent) => {
@@ -114,12 +144,14 @@ export const PortfolioHeatmap = () => {
         }
       };
       
-      // Add to local heatmap for immediate feedback
-      heatmapRef.current.addClick(clickEvent);
+      // Add to local heatmap for immediate feedback with RAF scheduling
+      rafSchedulerRef.current?.schedule('add-click', () => {
+        heatmapRef.current?.addClick(clickEvent);
+      });
       
-      // Record in database for persistence and sharing
+      // Batch click events for database recording
       const analytics = supabaseAnalyticsService;
-      heatmapDatabase.recordClick({
+      clickBatcherRef.current?.add({
         x,
         y,
         pageX: x,
@@ -137,7 +169,7 @@ export const PortfolioHeatmap = () => {
     document.addEventListener('click', handleInteraction);
     document.addEventListener('touchstart', handleInteraction, { passive: true });
     
-    // Handle window resize and DOM changes
+    // Handle window resize and DOM changes with debouncing
     const handleResize = () => {
       const newHeight = Math.max(
         document.body.scrollHeight,
@@ -151,101 +183,175 @@ export const PortfolioHeatmap = () => {
       heatmapContainer.style.height = `${newHeight}px`;
       
       if (heatmapRef.current) {
-        heatmapRef.current.renderer.updateCanvasSize();
-        heatmapRef.current.render();
+        // Use RAF for canvas updates
+        rafSchedulerRef.current?.schedule('resize-update', () => {
+          heatmapRef.current?.renderer.updateCanvasSize();
+          heatmapRef.current?.render();
+        });
       }
     };
     
-    window.addEventListener('resize', handleResize);
+    // Debounce resize handler (250ms delay)
+    const debouncedResize = debounce(handleResize, 250);
+    window.addEventListener('resize', debouncedResize);
     
-    // Use MutationObserver to detect DOM changes
+    // Optimize MutationObserver with debouncing and specific target
+    const debouncedMutationHandler = debounce(handleResize, 500);
     const observer = new MutationObserver(() => {
-      handleResize();
+      debouncedMutationHandler();
     });
     
-    observer.observe(document.body, {
+    // Only observe the main content area, not the entire body
+    const mainContent = document.querySelector('main') || document.body;
+    observer.observe(mainContent, {
       childList: true,
       subtree: true,
-      attributes: true,
-      attributeFilter: ['style', 'class']
+      attributes: false // Don't watch all attribute changes
     });
     
-    // Load aggregated data from all users
-    const loadAggregatedData = async () => {
+    // Load aggregated data with lazy loading
+    const loadAggregatedData = async (append = false) => {
+      if (isLoadingMore || (!hasMoreData && append)) return;
+      
+      setIsLoadingMore(true);
       const startTime = performance.now();
-      console.log('🔄 Starting to load heatmap data from database...');
+      console.log('🔄 Loading heatmap data...', { append, offset: currentOffsetRef.current });
       
       try {
-        // Fetch aggregated click data from database
-        const aggregatedData = await heatmapDatabase.getAggregatedHeatmapData(
+        // Load viewport-specific data first for initial load
+        if (!append && currentOffsetRef.current === 0) {
+          const viewport = {
+            top: window.scrollY,
+            bottom: window.scrollY + window.innerHeight,
+            left: 0,
+            right: window.innerWidth
+          };
+          
+          const viewportData = await heatmapDatabase.getViewportHeatmapData(
+            viewport,
+            window.location.pathname,
+            '7 days'
+          );
+          
+          if (viewportData.length > 0) {
+            console.log(`📊 Processing ${viewportData.length} viewport clicks`);
+            processHeatmapData(viewportData, false);
+          }
+        }
+        
+        // Load paginated data - increased batch size for millions of clicks
+        const { data, hasMore, nextOffset } = await heatmapDatabase.getAggregatedHeatmapDataPaginated(
           window.location.pathname,
-          '7 days' // Show last 7 days of data
+          '7 days',
+          500, // Load 500 points at a time for better performance with large datasets
+          currentOffsetRef.current
         );
         
         const loadTime = performance.now() - startTime;
-        console.log(`✅ Heatmap data loaded in ${loadTime.toFixed(0)}ms`, aggregatedData);
+        console.log(`✅ Data loaded in ${loadTime.toFixed(0)}ms`);
         
-        if (aggregatedData && aggregatedData.length > 0) {
-          console.log(`📊 Processing ${aggregatedData.length} aggregated click points`);
-          
-          // Convert aggregated data to click events
-          const clicks = aggregatedData.flatMap(item => {
-            // Create multiple clicks based on count for proper heat intensity
-            const clicksArray = [];
-            const maxClicks = Math.min(item.click_count, 10); // Cap at 10 to prevent performance issues
-            
-            for (let i = 0; i < maxClicks; i++) {
-              clicksArray.push({
-                x: item.x,
-                y: item.y,
-                count: 1,
-                element: 'AGGREGATED'
-              });
-            }
-            
-            return clicksArray;
-          });
-          
-          if (clicks.length > 0) {
-            console.log(`🎨 Rendering ${clicks.length} heatmap points`);
-            heatmapRef.current?.importData({
-              type: 'click',
-              clicks,
-              timestamp: Date.now()
-            });
-          }
+        if (data && data.length > 0) {
+          processHeatmapData(data, append);
+          currentOffsetRef.current = nextOffset;
+          setHasMoreData(hasMore);
         } else {
-          console.log('ℹ️ No heatmap data found in database');
+          setHasMoreData(false);
         }
         
-        // Also load any failed clicks from localStorage and retry
-        await heatmapDatabase.retryFailedClicks();
+        // Load failed clicks on first load
+        if (!append) {
+          await heatmapDatabase.retryFailedClicks();
+        }
       } catch (error) {
-        console.error('❌ Failed to load aggregated heatmap data:', error);
+        console.error('❌ Failed to load heatmap data:', error);
       } finally {
-        // Hide loading overlay
-        if (loadingOverlayRef.current) {
+        setIsLoadingMore(false);
+        
+        // Hide loading overlay on first load
+        if (!append && loadingOverlayRef.current && isVisible) {
           loadingOverlayRef.current.style.display = 'none';
         }
       }
     };
     
+    // Process heatmap data and render
+    const processHeatmapData = (aggregatedData: any[], _append: boolean) => {
+      // Filter out already loaded data points
+      const newData = aggregatedData.filter(item => {
+        const key = `${item.x}-${item.y}`;
+        if (loadedDataRef.current.has(key)) return false;
+        loadedDataRef.current.add(key);
+        return true;
+      });
+      
+      if (newData.length === 0) return;
+      
+      console.log(`📊 Processing ${newData.length} new click points`);
+      
+      // Convert aggregated data to click events with actual counts
+      // No longer creating multiple points - pass the actual count value
+      const clicks = newData.map(item => ({
+        x: item.x,
+        y: item.y,
+        count: item.click_count, // Use actual click count for proper intensity scaling
+        element: 'AGGREGATED'
+      }));
+      
+      if (clicks.length > 0) {
+        console.log(`🎨 Rendering ${clicks.length} heatmap points`);
+        rafSchedulerRef.current?.schedule('import-data', () => {
+          heatmapRef.current?.importData({
+            type: 'click',
+            clicks,
+            timestamp: Date.now()
+          });
+        });
+      }
+    };
+    
+    // Initial load
     loadAggregatedData();
     
-    // Refresh aggregated data periodically
-    const refreshInterval = setInterval(() => {
-      loadAggregatedData();
-    }, 60000); // Refresh every minute
+    // Load more data on scroll
+    const handleScroll = debounce(() => {
+      const scrollBottom = window.scrollY + window.innerHeight;
+      const documentHeight = document.documentElement.scrollHeight;
+      
+      // Load more when user scrolls near bottom
+      if (scrollBottom > documentHeight - 500 && hasMoreData && !isLoadingMore) {
+        loadAggregatedData(true);
+      }
+    }, 300);
+    
+    window.addEventListener('scroll', handleScroll);
+    
+    // Disable auto-refresh to prevent constant re-rendering
+    // const refreshInterval = setInterval(() => {
+    //   // Clear cache and reset
+    //   heatmapDatabase.clearCache();
+    //   loadedDataRef.current.clear();
+    //   currentOffsetRef.current = 0;
+    //   setHasMoreData(true);
+    //   
+    //   // Reload data
+    //   loadAggregatedData();
+    // }, 120000); // Refresh every 2 minutes (increased from 1 minute)
     
     // No need for localStorage saving anymore - data goes to database
     
     // Cleanup
     return () => {
-      clearInterval(refreshInterval);
+      // clearInterval(refreshInterval);
       document.removeEventListener('click', handleInteraction);
       document.removeEventListener('touchstart', handleInteraction);
-      window.removeEventListener('resize', handleResize);
+      window.removeEventListener('resize', debouncedResize);
+      window.removeEventListener('scroll', handleScroll);
       observer.disconnect();
+      
+      // Cleanup performance utilities
+      clickBatcherRef.current?.flush();
+      clickBatcherRef.current?.destroy();
+      rafSchedulerRef.current?.destroy();
       
       // Ensure any pending clicks are sent
       heatmapDatabase.flush();
@@ -267,6 +373,25 @@ export const PortfolioHeatmap = () => {
     };
   }, []);
   
+  // Handle visibility toggle changes
+  useEffect(() => {
+    if (!heatmapRef.current || !isInitialized.current) return;
+    
+    heatmapRef.current.setVisible(isVisible);
+    
+    // Also hide/show the heatmap container and loading overlay
+    const heatmapContainer = document.querySelector('.heatmap-canvas') as HTMLCanvasElement;
+    if (heatmapContainer) {
+      heatmapContainer.style.display = isVisible ? 'block' : 'none';
+    }
+    
+    if (loadingOverlayRef.current) {
+      loadingOverlayRef.current.style.display = 'none';
+    }
+  }, [isVisible]);
+  
   // This component doesn't render anything visible itself
   return <div ref={containerRef} style={{ display: 'none' }} />;
-};
+});
+
+PortfolioHeatmap.displayName = 'PortfolioHeatmap';

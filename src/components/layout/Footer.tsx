@@ -44,7 +44,7 @@ const Footer = () => {
             transition={{ duration: 0.5 }}
             className="text-gray-600 dark:text-gray-400 text-xs sm:text-sm md:text-base mb-0 order-2 sm:order-1"
           >
-            © {currentYear} Avery Jennings Portfolio. All rights reserved.
+            © {currentYear} Software Engineer Portfolio. All rights reserved.
           </motion.div>
 
           {/* Social Links */}

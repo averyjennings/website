@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useMemo, useRef } from 'react';
 import {
   Chart as ChartJS,
   CategoryScale,
@@ -13,6 +13,8 @@ import {
   ArcElement,
 } from 'chart.js';
 import { Line, Bar, Doughnut } from 'react-chartjs-2';
+import zoomPlugin from 'chartjs-plugin-zoom';
+import annotationPlugin from 'chartjs-plugin-annotation';
 import { WebVitalMetric } from '@/types/performance';
 import { CombinedMetric } from '@/types/supabase-analytics';
 import { format } from 'date-fns';
@@ -27,7 +29,9 @@ ChartJS.register(
   Title,
   Tooltip,
   Legend,
-  Filler
+  Filler,
+  zoomPlugin,
+  annotationPlugin
 );
 
 interface MetricsChartProps {
@@ -56,6 +60,15 @@ const RATING_COLORS = {
   poor: '#EF4444',
 };
 
+// Web Vitals thresholds (good/poor) based on Google's recommendations
+const METRIC_THRESHOLDS: Record<string, { good: number; poor: number }> = {
+  CLS: { good: 0.1, poor: 0.25 },
+  FCP: { good: 1800, poor: 3000 },
+  LCP: { good: 2500, poor: 4000 },
+  TTFB: { good: 800, poor: 1800 },
+  INP: { good: 200, poor: 500 },
+};
+
 export function MetricsChart({
   metrics,
   type = 'line',
@@ -65,6 +78,8 @@ export function MetricsChart({
   showLegend = true,
   height = 300,
 }: MetricsChartProps) {
+  const chartRef = useRef<any>(null);
+
   const filteredData = useMemo(() => {
     let filtered = metricName 
       ? metrics.filter(m => m.name === metricName)
@@ -84,6 +99,44 @@ export function MetricsChart({
 
     return filtered.sort((a, b) => a.timestamp - b.timestamp);
   }, [metrics, metricName, timeRange]);
+
+  const resetZoom = () => {
+    if (chartRef.current) {
+      chartRef.current.resetZoom();
+    }
+  };
+
+  const exportChart = () => {
+    if (chartRef.current) {
+      const url = chartRef.current.toBase64Image();
+      const link = document.createElement('a');
+      link.download = `${title || 'chart'}_${new Date().toISOString().split('T')[0]}.png`;
+      link.href = url;
+      link.click();
+    }
+  };
+
+  const exportData = () => {
+    const csvContent = [
+      ['Timestamp', 'Metric', 'Value', 'Rating'],
+      ...filteredData.map(m => [
+        new Date(m.timestamp).toISOString(),
+        m.name,
+        m.value,
+        m.rating,
+      ]),
+    ]
+      .map(row => row.join(','))
+      .join('\n');
+
+    const blob = new Blob([csvContent], { type: 'text/csv' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.download = `${title || 'metrics'}_${new Date().toISOString().split('T')[0]}.csv`;
+    link.href = url;
+    link.click();
+    URL.revokeObjectURL(url);
+  };
 
   const chartData = useMemo(() => {
     if (type === 'doughnut') {
@@ -170,6 +223,44 @@ export function MetricsChart({
   }, [filteredData, metricName, type, timeRange]);
 
   const options = useMemo(() => {
+    // Generate annotations for performance thresholds
+    const annotations: any = {};
+    if (metricName && METRIC_THRESHOLDS[metricName as string]) {
+      const thresholds = METRIC_THRESHOLDS[metricName as string];
+      annotations.goodThreshold = {
+        type: 'line',
+        yMin: thresholds.good,
+        yMax: thresholds.good,
+        borderColor: RATING_COLORS.good,
+        borderWidth: 2,
+        borderDash: [5, 5],
+        label: {
+          display: true,
+          content: 'Good',
+          position: 'end',
+          backgroundColor: RATING_COLORS.good,
+          color: 'white',
+          font: { size: 12 },
+        },
+      };
+      annotations.poorThreshold = {
+        type: 'line',
+        yMin: thresholds.poor,
+        yMax: thresholds.poor,
+        borderColor: RATING_COLORS.poor,
+        borderWidth: 2,
+        borderDash: [5, 5],
+        label: {
+          display: true,
+          content: 'Poor',
+          position: 'end',
+          backgroundColor: RATING_COLORS.poor,
+          color: 'white',
+          font: { size: 12 },
+        },
+      };
+    }
+
     const baseOptions = {
       responsive: true,
       maintainAspectRatio: false,
@@ -209,6 +300,24 @@ export function MetricsChart({
 
               return `${metric}: ${typeof value === 'number' ? value.toFixed(metric === 'CLS' ? 3 : (metric === 'Page Visits' || metric === 'Unique Visitors') ? 0 : 0) : value}${unit}`;
             },
+          },
+        },
+        annotation: {
+          annotations,
+        },
+        zoom: {
+          pan: {
+            enabled: true,
+            mode: 'x' as const,
+          },
+          zoom: {
+            wheel: {
+              enabled: true,
+            },
+            pinch: {
+              enabled: true,
+            },
+            mode: 'x' as const,
           },
         },
       },
@@ -267,10 +376,60 @@ export function MetricsChart({
   }
 
   return (
-    <div style={{ height }}>
-      {type === 'line' && <Line key={`line-${metricName || 'all'}-${timeRange}`} data={chartData} options={options} />}
-      {type === 'bar' && <Bar key={`bar-${metricName || 'all'}-${timeRange}`} data={chartData} options={options} />}
-      {type === 'doughnut' && <Doughnut key={`doughnut-${timeRange}`} data={chartData} options={options} />}
+    <div className="relative">
+      {/* Chart controls toolbar */}
+      {type !== 'doughnut' && (
+        <div className="absolute top-2 right-2 z-10 flex gap-2">
+          <button
+            onClick={resetZoom}
+            className="px-3 py-1 text-xs bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+            title="Reset Zoom"
+          >
+            Reset Zoom
+          </button>
+          <button
+            onClick={exportChart}
+            className="px-3 py-1 text-xs bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+            title="Export as Image"
+          >
+            📷 Image
+          </button>
+          <button
+            onClick={exportData}
+            className="px-3 py-1 text-xs bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+            title="Export as CSV"
+          >
+            📊 CSV
+          </button>
+        </div>
+      )}
+      
+      <div style={{ height }}>
+        {type === 'line' && (
+          <Line 
+            ref={chartRef}
+            key={`line-${metricName || 'all'}-${timeRange}`} 
+            data={chartData} 
+            options={options} 
+          />
+        )}
+        {type === 'bar' && (
+          <Bar 
+            ref={chartRef}
+            key={`bar-${metricName || 'all'}-${timeRange}`} 
+            data={chartData} 
+            options={options} 
+          />
+        )}
+        {type === 'doughnut' && (
+          <Doughnut 
+            ref={chartRef}
+            key={`doughnut-${timeRange}`} 
+            data={chartData} 
+            options={options} 
+          />
+        )}
+      </div>
     </div>
   );
 }

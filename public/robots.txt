@@ -22,4 +22,4 @@ Allow: /#contact
 Crawl-delay: 1
 
 # Sitemap location
-Sitemap: https://avery-portfolio-eosin.vercel.app/sitemap.xml
+Sitemap: https://portfolio-eosin.vercel.app/sitemap.xml

@@ -9,9 +9,9 @@ interface SEOProps {
 }
 
 const SEO = ({
-  title = 'Avery Jennings - Full-Stack Developer & Software Engineer',
+  title = 'Software Engineer - Full-Stack Developer',
   description = 'Full-stack developer and software engineer specializing in React, TypeScript, Node.js, and modern web technologies. Explore my projects and professional experience.',
-  keywords = ['Avery Jennings', 'software engineer', 'full stack developer', 'React', 'TypeScript', 'Node.js', 'web developer', 'portfolio'],
+  keywords = ['software engineer', 'full stack developer', 'React', 'TypeScript', 'Node.js', 'web developer', 'portfolio'],
   image = '/og-image.png',
   url = typeof window !== 'undefined' ? window.location.href : '',
 }: SEOProps) => {

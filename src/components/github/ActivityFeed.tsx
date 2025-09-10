@@ -51,11 +51,12 @@ export function ActivityFeed({
         let url = `https://github.com/${event.repo.name}`;
 
         switch (event.type) {
-          case 'PushEvent':
+          case 'PushEvent': {
             const commitCount = event.payload.commits?.length || 1;
             title = `${commitCount} commit${commitCount > 1 ? 's' : ''}`;
             description = `${config.action} ${activity.repo}`;
             break;
+          }
           case 'CreateEvent':
             title = `${event.payload.ref_type} ${event.payload.ref || ''}`;
             description = `${config.action} in ${activity.repo}`;
